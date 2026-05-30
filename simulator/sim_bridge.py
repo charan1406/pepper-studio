@@ -250,6 +250,9 @@ class BridgeHandler(BaseHTTPRequestHandler):
     def _serve_static(self, path):
         """Serve the built web UI from web/dist/. '/' → index.html."""
         rel = "index.html" if path in ("/", "") else path.lstrip("/")
+        if "\x00" in rel:
+            self._send_json({"success": False, "error": "Forbidden"}, 400)
+            return
         dist_real = os.path.realpath(DIST_DIR)
         full = os.path.realpath(os.path.join(dist_real, rel))
 

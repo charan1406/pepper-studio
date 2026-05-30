@@ -49,4 +49,4 @@ def test_path_traversal_blocked(server):
     c = _conn(server)
     c.request("GET", "/../../sim_bridge.py")
     resp = c.getresponse()
-    assert resp.status in (403, 404)
+    assert resp.status == 403
