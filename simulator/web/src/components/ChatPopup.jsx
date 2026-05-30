@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { usePepperStore } from '../hooks/usePepperState';
-
-const BRIDGE_URL = window.location.origin;
+import { getBridgeUrl } from '../lib/bridge';
 
 function ChatPopup() {
   const [open, setOpen] = useState(() => {
@@ -67,7 +66,7 @@ function ChatPopup() {
     addChatMessage({ role: 'user', text, ts: Date.now() });
     setChatLoading(true);
     try {
-      const res = await fetch(`${BRIDGE_URL}/chat`, {
+      const res = await fetch(`${getBridgeUrl()}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text }),
