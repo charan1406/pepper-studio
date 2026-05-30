@@ -18,6 +18,7 @@ import hashlib
 import wave
 import io
 import os
+import mimetypes
 
 from llm import SimLLMClient
 
@@ -64,6 +65,7 @@ pa = None
 SIM_WEB_PORT = int(os.environ.get("SIM_WEB_PORT", 5002))
 SIM_WS_PORT = int(os.environ.get("SIM_WS_PORT", 5003))
 SIM_BRIDGE_PORT = int(os.environ.get("SIM_BRIDGE_PORT", 5001))
+DIST_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web", "dist")
 
 # ─── LLM Brain (optional, bring-your-own) ─────────────────────────
 # Any OpenAI-compatible endpoint: local (llama-server/Ollama/LM Studio) or
@@ -245,6 +247,31 @@ class BridgeHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(json.dumps(data).encode("utf-8"))
 
+    def _serve_static(self, path):
+        """Serve the built web UI from web/dist/. '/' → index.html."""
+        rel = "index.html" if path in ("/", "") else path.lstrip("/")
+        dist_real = os.path.realpath(DIST_DIR)
+        full = os.path.realpath(os.path.join(dist_real, rel))
+
+        # Path-traversal guard: resolved path must stay inside dist.
+        if full != dist_real and not full.startswith(dist_real + os.sep):
+            self._send_json({"success": False, "error": "Forbidden"}, 403)
+            return
+        if not os.path.isfile(full):
+            hint = "" if os.path.isdir(dist_real) else " (run: cd simulator/web && npm run build)"
+            self._send_json({"success": False, "error": f"Not found: {path}{hint}"}, 404)
+            return
+
+        ctype, _ = mimetypes.guess_type(full)
+        with open(full, "rb") as f:
+            body = f.read()
+        self.send_response(200)
+        self.send_header("Content-Type", ctype or "application/octet-stream")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(body)
+
     def _read_body(self):
         length = int(self.headers.get("Content-Length", 0))
         if length == 0:
@@ -292,7 +319,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
             pepper.log_api_call(path, "GET", response=response)
             self._send_json(response)
         else:
-            self._send_json({"success": False, "error": f"Unknown endpoint: {path}"}, 404)
+            self._serve_static(path)
 
     def _get_health(self, params):
         return {
