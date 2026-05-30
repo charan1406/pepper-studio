@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { usePepperStore } from '../hooks/usePepperState';
 
-const BRIDGE_URL = 'http://localhost:5001';
+const BRIDGE_URL = window.location.origin;
 
 function ChatPopup() {
   const [open, setOpen] = useState(() => {

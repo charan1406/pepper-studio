@@ -150,7 +150,9 @@ export function useBrowserTTS() {
  * Hook to maintain WebSocket connection to the simulator bridge.
  * Automatically reconnects on disconnect.
  */
-export function usePepperWebSocket(url = 'ws://localhost:5003') {
+const DEFAULT_WS_URL = `ws://${window.location.hostname}:5003`;
+
+export function usePepperWebSocket(url = DEFAULT_WS_URL) {
   const wsRef = useRef(null);
   const reconnectRef = useRef(null);
   const updateFromWS = usePepperStore((s) => s.updateFromWS);

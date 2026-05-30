@@ -114,7 +114,7 @@ function LoadingFallback() {
 }
 
 export default function App() {
-  usePepperWebSocket('ws://localhost:5003');
+  usePepperWebSocket();
 
   return (
     <div style={{ display: 'flex', width: '100vw', height: '100vh', background: '#1c1c1e' }}>
