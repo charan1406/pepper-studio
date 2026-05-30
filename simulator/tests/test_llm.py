@@ -29,6 +29,7 @@ class _StubHandler(BaseHTTPRequestHandler):
 
 @pytest.fixture
 def stub():
+    _StubHandler.response_body = {}  # reset shared class state per test
     server = HTTPServer(("127.0.0.1", 0), _StubHandler)
     t = threading.Thread(target=server.serve_forever, daemon=True)
     t.start()

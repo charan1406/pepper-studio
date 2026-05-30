@@ -79,7 +79,7 @@ class SimLLMClient:
         try:
             msg = data["choices"][0]["message"]
         except (KeyError, IndexError, TypeError):
-            return LLMResult(success=False, error=f"Unexpected schema: {data}")
+            return LLMResult(success=False, error="Unexpected response schema (missing choices/message)")
 
         content = (msg.get("content") or msg.get("reasoning_content") or "")
         content = _THINK_RE.sub("", content).strip()
