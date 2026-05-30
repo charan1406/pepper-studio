@@ -18,7 +18,6 @@ import hashlib
 import wave
 import io
 import os
-import sys
 
 from llm import SimLLMClient
 
