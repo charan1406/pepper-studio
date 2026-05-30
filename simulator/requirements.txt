@@ -1,4 +1,9 @@
+# Core — required to run the simulator and serve the UI.
 websockets>=12.0
-opencv-python>=4.8.0
-pyaudio>=0.2.13
-numpy>=1.24.0
+
+# Optional hardware proxies: use the laptop webcam/mic as Pepper's camera/mic.
+# The simulator runs fine without these (camera shows a placeholder, mic is
+# silent). Install with: pip install opencv-python numpy pyaudio
+# opencv-python>=4.8.0
+# numpy>=1.24.0
+# pyaudio>=0.2.13

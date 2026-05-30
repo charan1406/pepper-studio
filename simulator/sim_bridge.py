@@ -786,6 +786,12 @@ def main():
     print("  3D UI should connect to ws://localhost:5003")
     print("=" * 60)
 
+    ui_url = f"http://localhost:{SIM_BRIDGE_PORT}"
+    print(f"[UI] Open {ui_url}")
+    if os.environ.get("SIM_OPEN_BROWSER", "1") == "1":
+        import webbrowser
+        threading.Timer(1.0, lambda: webbrowser.open(ui_url)).start()
+
     try:
         server.serve_forever()
     except KeyboardInterrupt:
