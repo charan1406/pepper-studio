@@ -790,7 +790,10 @@ def main():
     print(f"[UI] Open {ui_url}")
     if os.environ.get("SIM_OPEN_BROWSER", "1") == "1":
         import webbrowser
-        threading.Timer(1.0, lambda: webbrowser.open(ui_url)).start()
+        # daemon so a Ctrl-C during the 1s window doesn't delay process exit
+        opener = threading.Timer(1.0, lambda: webbrowser.open(ui_url))
+        opener.daemon = True
+        opener.start()
 
     try:
         server.serve_forever()
