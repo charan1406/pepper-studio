@@ -1,6 +1,9 @@
 #!/bin/bash
-# Pepper AI Simulator — Setup & Launch Script
-# For Arch Linux (and any PEP 668 compliant distro)
+# Pepper Studio — Simulator Setup & Launch
+# Creates a local venv, installs core deps, and starts the bridge (which also
+# serves the 3D web UI on http://localhost:5001). Pass --hardware to also
+# install the optional webcam/mic deps (opencv-python, numpy, pyaudio).
+# For Arch Linux (and any PEP 668 compliant distro).
 
 set -e
 
@@ -9,10 +12,9 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 VENV_DIR="$PROJECT_DIR/.venv"
 
 echo "============================================"
-echo "  Pepper AI — Environment Setup"
+echo "  Pepper Studio — Simulator Setup"
 echo "============================================"
 
-# Create venv if it doesn't exist
 if [ ! -d "$VENV_DIR" ]; then
     echo "[1/3] Creating virtual environment..."
     python -m venv "$VENV_DIR"
@@ -20,17 +22,17 @@ else
     echo "[1/3] Virtual environment exists."
 fi
 
-# Activate and install deps
-echo "[2/3] Installing dependencies..."
+echo "[2/3] Installing core dependencies..."
 source "$VENV_DIR/bin/activate"
 pip install --quiet --upgrade pip
-pip install --quiet websockets opencv-python numpy pyaudio 2>/dev/null || {
-    echo "[WARN] pyaudio failed — trying without it (mic will be simulated)"
-    pip install --quiet websockets opencv-python numpy
-}
+pip install --quiet -r "$SCRIPT_DIR/requirements.txt"
+if [ "$1" = "--hardware" ]; then
+    echo "      + optional hardware deps (webcam/mic)..."
+    pip install --quiet opencv-python numpy pyaudio || \
+        echo "[WARN] optional hardware deps failed — sim still runs (placeholder cam, silent mic)"
+fi
 
-# Launch bridge
-echo "[3/3] Starting simulator bridge..."
+echo "[3/3] Starting simulator bridge (API + 3D UI on http://localhost:5001)..."
 echo ""
 cd "$SCRIPT_DIR"
 python sim_bridge.py

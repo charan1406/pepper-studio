@@ -59,6 +59,7 @@ from sim_state import PepperState
 pepper = PepperState()
 ws_clients = set()
 webcam = None
+audio_manager = None
 audio_stream = None
 pa = None
 
