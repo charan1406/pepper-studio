@@ -6,7 +6,8 @@ import Room from './components/Room';
 import Dashboard from './components/Dashboard';
 import ChatPopup from './components/ChatPopup';
 import SearchResultPopup from './components/SearchResultPopup';
-import { usePepperWebSocket, usePepperStore } from './hooks/usePepperState';
+import ControlPanel from './components/ControlPanel';
+import { usePepperWebSocket, usePepperStore, useBrowserTTS } from './hooks/usePepperState';
 
 function SpeechOverlay() {
   const isSpeaking = usePepperStore((s) => s.isSpeaking);
@@ -115,6 +116,7 @@ function LoadingFallback() {
 
 export default function App() {
   usePepperWebSocket();
+  useBrowserTTS();
 
   return (
     <div style={{ display: 'flex', width: '100vw', height: '100vh', background: '#1c1c1e' }}>
@@ -128,6 +130,7 @@ export default function App() {
           to { width: 0%; }
         }
       `}</style>
+      <ControlPanel />
       {/* 3D Viewport */}
       <div style={{ flex: 1, position: 'relative' }}>
         <Canvas
