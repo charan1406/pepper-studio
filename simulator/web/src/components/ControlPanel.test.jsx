@@ -53,4 +53,15 @@ describe('ControlPanel wiring', () => {
     fireEvent.mouseUp(fwd);
     expect(bridge.stopMove).toHaveBeenCalled();
   });
+
+  it('saving a bridge URL persists it via setBridgeUrl', async () => {
+    const spy = vi.spyOn(bridge, 'setBridgeUrl');
+    render(<ControlPanel />);
+    fireEvent.click(screen.getByRole('button', { name: /bridge url/i }));
+    const field = screen.getByPlaceholderText(/localhost:5001|bridge url/i);
+    await userEvent.clear(field);
+    await userEvent.type(field, 'http://robot.local:5001');
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+    expect(spy).toHaveBeenCalledWith('http://robot.local:5001');
+  });
 });

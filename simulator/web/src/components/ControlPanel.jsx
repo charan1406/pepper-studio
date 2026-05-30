@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   moveVelocity, stopMove, setPosture, speak, stopSpeak,
   setEyeColor, listAnimations, runAnimation, setHead,
-  POSTURES, HEAD_LIMITS,
+  getBridgeUrl, setBridgeUrl, POSTURES, HEAD_LIMITS,
 } from '../lib/bridge';
 
 const C = {
@@ -59,6 +59,8 @@ export default function ControlPanel() {
   const [selectedAnim, setSelectedAnim] = useState('');
   const [yaw, setYaw] = useState(0);
   const [pitch, setPitch] = useState(0);
+  const [showSettings, setShowSettings] = useState(false);
+  const [urlDraft, setUrlDraft] = useState(getBridgeUrl());
 
   useEffect(() => {
     listAnimations()
@@ -86,7 +88,30 @@ export default function ControlPanel() {
   return (
     <div style={C.panel}>
       <div style={C.header}>
-        <div style={C.title}>Manual Control</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={C.title}>Manual Control</div>
+          <button
+            style={{ ...C.btn, padding: '4px 8px', fontSize: '11px' }}
+            onClick={() => { setUrlDraft(getBridgeUrl()); setShowSettings((s) => !s); }}
+          >Bridge URL</button>
+        </div>
+        {showSettings && (
+          <div style={{ marginTop: '10px' }}>
+            <input
+              style={{ ...C.input, width: '100%', marginBottom: '6px' }}
+              value={urlDraft}
+              placeholder="http://localhost:5001"
+              onChange={(e) => setUrlDraft(e.target.value)}
+            />
+            <div style={C.grid2}>
+              <button style={C.primary} onClick={() => { setBridgeUrl(urlDraft); setShowSettings(false); }}>Save</button>
+              <button style={C.btn} onClick={() => { setBridgeUrl(''); setUrlDraft(getBridgeUrl()); }}>Reset</button>
+            </div>
+            <div style={{ fontSize: '10px', color: '#666', marginTop: '6px' }}>
+              Point at a real Pepper's bridge to teleop. Reload after changing.
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Movement */}
