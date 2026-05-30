@@ -150,7 +150,11 @@ export function useBrowserTTS() {
  * Hook to maintain WebSocket connection to the simulator bridge.
  * Automatically reconnects on disconnect.
  */
-const DEFAULT_WS_URL = `ws://${window.location.hostname}:5003`;
+// WS runs on a separate fixed port (5003) from the HTTP page; scheme tracks the
+// page protocol so an HTTPS-served page uses wss:// (avoids mixed-content blocks).
+const WS_PORT = 5003;
+const WS_SCHEME = window.location.protocol === 'https:' ? 'wss' : 'ws';
+const DEFAULT_WS_URL = `${WS_SCHEME}://${window.location.hostname}:${WS_PORT}`;
 
 export function usePepperWebSocket(url = DEFAULT_WS_URL) {
   const wsRef = useRef(null);
