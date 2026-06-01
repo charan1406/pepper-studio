@@ -51,6 +51,7 @@ except ImportError:
     print("[WARN] pyaudio not installed. Mic simulation disabled.")
 
 import subprocess
+import shutil
 
 from sim_state import PepperState
 
@@ -84,14 +85,22 @@ else:
     print("[LLM] AI disabled — /chat returns mocks. Set SIM_AI_BASE_URL to enable.")
 
 # ─── Local TTS (Piper) ───────────────────────────────────────────
+# Optional: browser TTS is the default audio path. Piper only plays when the
+# binary, aplay, and the model file are all present. When it can't play, we
+# leave _tts_process = None so the caller falls back to a time-based estimate
+# for is_speaking instead of waiting on a pipeline that exits instantly.
 PIPER_MODEL = os.path.expanduser("~/models/piper/en_US-amy-medium.onnx")
+_PIPER_OK = bool(shutil.which("piper") and shutil.which("aplay") and os.path.exists(PIPER_MODEL))
 _tts_process = None
 
 def speak_local(text: str):
-    """Generate and play speech with piper TTS in a background thread."""
+    """Play speech via piper TTS if available; otherwise no-op (browser TTS handles audio)."""
     global _tts_process
     if _tts_process and _tts_process.poll() is None:
         _tts_process.terminate()
+    _tts_process = None
+    if not _PIPER_OK:
+        return
     try:
         _tts_process = subprocess.Popen(
             f'echo {_shell_quote(text)} | piper --model {PIPER_MODEL} --output-raw 2>/dev/null | aplay -r 22050 -f S16_LE -q 2>/dev/null',
@@ -99,6 +108,7 @@ def speak_local(text: str):
         )
     except Exception as e:
         print(f"[TTS] Piper error: {e}")
+        _tts_process = None
 
 def _shell_quote(s: str) -> str:
     return "'" + s.replace("'", "'\\''") + "'"
