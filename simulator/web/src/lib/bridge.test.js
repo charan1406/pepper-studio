@@ -3,6 +3,7 @@ import {
   getBridgeUrl, setBridgeUrl, BRIDGE_URL_KEY,
   moveVelocity, stopMove, setPosture, speak, stopSpeak,
   setEyeColor, listAnimations, runAnimation, setHead, navigateTo,
+  getAiConfig, setAiConfig, testAiConfig,
 } from './bridge';
 
 function mockFetch(jsonBody = { success: true, data: {} }, ok = true, status = 200) {
@@ -122,5 +123,32 @@ describe('control calls', () => {
     const fetchMock = mockFetch();
     await stopMove();
     expect(fetchMock.mock.calls[0][0]).toBe('http://robot.local:5001/move/stop');
+  });
+});
+
+describe('AI config client', () => {
+  it('getAiConfig GETs /ai/config', async () => {
+    const fetchMock = mockFetch();
+    await getAiConfig();
+    const [url, opts] = fetchMock.mock.calls[0];
+    expect(url).toContain('/ai/config');
+    expect(opts).toBeUndefined();
+  });
+
+  it('setAiConfig POSTs the body to /ai/config', async () => {
+    const fetchMock = mockFetch();
+    await setAiConfig({ base_url: 'http://x/v1', model: 'm' });
+    const [url, opts] = fetchMock.mock.calls[0];
+    expect(url).toContain('/ai/config');
+    expect(opts.method).toBe('POST');
+    expect(JSON.parse(opts.body)).toEqual({ base_url: 'http://x/v1', model: 'm' });
+  });
+
+  it('testAiConfig POSTs to /ai/test', async () => {
+    const fetchMock = mockFetch();
+    await testAiConfig({ base_url: 'http://x/v1' });
+    const [url, opts] = fetchMock.mock.calls[0];
+    expect(url).toContain('/ai/test');
+    expect(opts.method).toBe('POST');
   });
 });

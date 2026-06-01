@@ -48,6 +48,11 @@ export const runAnimation = (name) => post('/animation/run', { name });
 export const setHead = (yaw, pitch, speed = 0.2) => post('/head/set', { yaw, pitch, speed });
 export const navigateTo = (x, y, theta = 0) => post('/navigate/goto', { x, y, theta });
 
+// AI provider config (runtime dial). api_key is never returned by the bridge.
+export const getAiConfig = () => get('/ai/config');
+export const setAiConfig = (cfg) => post('/ai/config', cfg);
+export const testAiConfig = (cfg) => post('/ai/test', cfg);
+
 // Posture + head-limit constants (from sim_state.py) for the UI.
 export const POSTURES = ['Stand', 'StandInit', 'StandZero', 'Crouch', 'Sit', 'SitRelax'];
 export const HEAD_LIMITS = { yaw: [-2.0857, 2.0857], pitch: [-0.7068, 0.6371] };
