@@ -1,6 +1,8 @@
 import os
 import stat
 import sys
+import tempfile
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import runner
@@ -57,3 +59,76 @@ def test_resolve_binary_prefers_configured(tmp_path, monkeypatch):
     os.chmod(fake, 0o755)
     assert runner.resolve_binary(str(fake)) == str(fake)
     assert runner.resolve_binary("/nonexistent/llama-server") in (None, __import__("shutil").which("llama-server"))
+
+
+FAKE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fake_llama_server.py")
+
+
+def _tmp_gguf():
+    f = tempfile.NamedTemporaryFile(suffix=".gguf", delete=False)
+    f.close()
+    return f.name
+
+
+def _wait_state(target, timeout=15):
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if runner.status()["state"] == target:
+            return True
+        time.sleep(0.1)
+    return False
+
+
+def _reset():
+    runner.stop()
+    runner.set_callbacks(None, None)
+
+
+def test_start_reaches_ready_and_fires_callback():
+    _reset()
+    seen = {}
+    runner.set_callbacks(on_ready=lambda url, model: seen.update(url=url, model=model))
+    runner.start(_tmp_gguf(), {}, binary=FAKE)
+    assert _wait_state("ready"), runner.status()
+    st = runner.status()
+    assert st["base_url"] == f"http://127.0.0.1:{st['port']}/v1"
+    assert seen.get("url") == st["base_url"]
+    runner.stop()
+
+
+def test_stop_kills_process_and_clears():
+    _reset()
+    runner.start(_tmp_gguf(), {}, binary=FAKE)
+    assert _wait_state("ready")
+    proc = runner._state["proc"]
+    runner.stop()
+    assert proc.poll() is not None
+    assert runner.status()["state"] == "stopped"
+    assert runner.status()["base_url"] == ""
+
+
+def test_binary_not_found_errors():
+    _reset()
+    runner.start(_tmp_gguf(), {}, binary="/nonexistent/llama-server-xyz")
+    assert runner.status()["state"] == "error"
+    assert "not found" in runner.status()["error"].lower()
+
+
+def test_gguf_missing_errors():
+    _reset()
+    runner.start("/no/such/model.gguf", {}, binary=FAKE)
+    assert runner.status()["state"] == "error"
+
+
+def test_crash_is_detected():
+    _reset()
+    runner.start(_tmp_gguf(), {"extra_args": "--crash"}, binary=FAKE)
+    assert _wait_state("error"), runner.status()
+    assert runner.status()["log"]  # captured some output
+    runner.stop()
+
+
+def test_bad_extra_args_errors():
+    _reset()
+    runner.start(_tmp_gguf(), {"extra_args": '--x "unbalanced'}, binary=FAKE)
+    assert runner.status()["state"] == "error"
