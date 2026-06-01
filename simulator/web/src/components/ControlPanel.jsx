@@ -4,6 +4,7 @@ import {
   setEyeColor, listAnimations, runAnimation, setHead,
   getBridgeUrl, setBridgeUrl, POSTURES, HEAD_LIMITS,
 } from '../lib/bridge';
+import AISettings from './AISettings';
 
 const C = {
   panel: {
@@ -112,6 +113,7 @@ export default function ControlPanel() {
             </div>
           </div>
         )}
+        <AISettings />
       </div>
 
       {/* Movement */}
