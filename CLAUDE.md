@@ -69,18 +69,18 @@ The owner is self-taught and building by doing, and doesn't always know the prop
 
 1. **Drive the robot by hand** — UI controls that move / pose / speak / animate the robot.
 2. **Test via code** — point your own code at the API-compatible HTTP bridge.
-3. **Optional AI** — wire in an LLM by localhost URL *or* API key (bring-your-own); fully usable with no AI at all.
+3. **Built-in AI brain (optional)** — run an LLM in-app: cloud (your API key) or local (point at a running server, *or* pick a GGUF and Studio launches `llama-server` for you). Fully usable with no AI at all.
 
-This repo is the **BRIDGE + STUDIO UI**. It does **not** contain an LLM brain. The companion project `pepper-ai` (the 4B "brain") is a *consumer* of this bridge over the HTTP contract — not a dependency of this repo.
+This repo is the **all-inclusive Pepper sandbox**: bridge + Studio UI + the AI brain, in one package. It ships **no model weights and no inference binary** — you bring a GGUF and a `llama-server`. (Historically the brain lived in a separate `pepper-ai` repo; that brain now merges in here — see "Relationship to pepper-ai".)
 
 ### What this repo IS
 - The robot simulator (`sim_bridge.py` + `sim_state.py`) and its 3D web UI.
 - The real-robot bridge (`pepper/bridge.py`, NAOqi 2.5 / Python 2.7) — same HTTP contract as the sim.
-- A bring-your-own, OpenAI-compatible AI seam (optional).
+- A bring-your-own, OpenAI-compatible AI seam (optional) — cloud key, a running local server, or a `llama-server` sidecar Studio launches from a GGUF.
+- The AI brain itself (conversation / personality / memory), run in-app on top of that seam.
 
 ### What this repo is NOT
-- Not the LLM brain (lives in `pepper-ai`).
-- Not a bundled model — no GPU-heavy weights ship here (contradicts non-dev packaging).
+- Not a bundled model — **no weights and no inference binary ship here** (contradicts lean cross-platform packaging). You bring the GGUF; you bring (or build, via our guide) `llama-server`. Studio never auto-compiles or auto-downloads it.
 - Not an Electron app — rejected for resource bloat and being wrong for a GPU-heavy WebGL frontend. Packaging target is a **"localhost app"**: a PyInstaller backend that auto-opens the user's existing browser (the Jupyter / TensorBoard / Gradio / ComfyUI pattern). Optional pywebview native-window build later.
 
 ## Architecture — 3 layers, one seam
@@ -88,7 +88,7 @@ This repo is the **BRIDGE + STUDIO UI**. It does **not** contain an LLM brain. T
   - `simulator/sim_bridge.py` (fake, Python 3) — HTTP on `:5001`, WebSocket state broadcast on `:5003` @ 20fps, backed by the `sim_state.py` physics engine.
   - `pepper/bridge.py` (real, NAOqi `ALProxy`, Python 2.7) — pure robot I/O, identical routes.
 - **STUDIO UI** — React + Three.js + zustand (Vite). 3D viz + manual control + monitoring + API testing. Talks HTTP to a **bridge URL that is a user setting** (default `localhost:5001`). That setting is the deliberate hook for connecting to a real Pepper later — same controls become teleop.
-- **AI (optional)** — one OpenAI-compatible client (`simulator/llm.py`, vendored, stdlib-only) driven by `base_url` + `api_key` + `model`. Covers localhost (llama-server / Ollama / LM Studio) and cloud (OpenAI / Anthropic-compat / OpenRouter / Groq). `"None"` = pure robot sim, mock fallback.
+- **AI (optional, in-app)** — one OpenAI-compatible client (`simulator/llm.py`, vendored, stdlib-only) driven by `base_url` + `api_key` + `model`. **Three configuration sources resolve to that one `base_url`:** (1) cloud — key + base_url + model (OpenAI / Anthropic-compat / OpenRouter / Groq); (2) local — point at a server you started (llama-server / Ollama / LM Studio); (3) local — pick a GGUF and Studio spawns a `llama-server` **sidecar** for you (args-as-list, never `shell=True`), advanced flags exposed (`-ngl`, ctx-size, KV-cache type, `--mmproj`). Config is runtime-settable via `/ai/config` and persisted; the runner degrades gracefully — its failure never takes the app down. `"None"` = pure robot sim, mock fallback.
 
 **Key consequence:** "bridge to a real Pepper" is not a build artifact — it's a workflow: point the Studio at the real bridge's URL. Deploying `pepper/bridge.py` to the robot is documented in `DEPLOYMENT.md`.
 
@@ -124,13 +124,17 @@ Manual control POSTs to **existing** endpoints. Both bridge implementations must
 - Animation: `/animation/list`, `/animation/run`
 - Head/joints: `/head/set`, `/joints/set`
 - State: WebSocket on `:5003` (sim) for live telemetry; `/chat`, `/search_results` are sim-only demo extras.
+- AI (studio-side, **not** mirrored to the robot bridge — the real Pepper never hosts the brain): `/ai/config` (GET status / POST set; the key is never returned). Local-runner endpoints (`/ai/runner/*`) are specced in SP1.3b.
 
-When changing the contract, change **both** `sim_bridge.py` and `pepper/bridge.py`, or the sim stops predicting the real robot.
+When changing the **robot** contract, change **both** `sim_bridge.py` and `pepper/bridge.py`, or the sim stops predicting the real robot. AI endpoints are studio-only and exempt.
 
 ## Build Order & Status (SP1 — Standalone Sandbox)
 1. ✅ **Decouple + single process** *(keystone, DONE & verified)* — `python simulator/sim_bridge.py` runs standalone with zero `pepper-ai` imports, serves `web/dist` on `:5001`, AI optional via `SIM_AI_BASE_URL` / `SIM_AI_API_KEY` / `SIM_AI_MODEL`. 10 pytest tests green. Auto-opens the browser.
-2. ⬅️ **Manual control panel** *(NEXT)* — wire the frontend to the existing bridge endpoints above; add a small HTTP client module (today only `ChatPopup` calls out); make the **bridge URL a setting from day 1**.
-3. **AI settings + code-testing affordances** — settings UI for the AI dial; in-app API reference + copy-paste curl/Python snippets; keep the live API log.
+2. ✅ **Manual control panel** *(DONE & verified)* — frontend wired to bridge endpoints via `web/src/lib/bridge.js`; **bridge URL is a setting**; control endpoints verified to actually drive sim state (posture/head/move/eyes/anim + clamp + error paths); `/speak` duration bug fixed (piper-absent time-estimate fallback) and locked with a regression test.
+3. **AI brain + code-testing affordances** *(IN PROGRESS — merged thesis)* — split into focused specs:
+   - **3a — AI provider config** *(current)*: runtime-settable `/ai/config` (cloud key + local URL), persisted to `~/.pepper-studio/ai.json` (`0600`, atomic write); UI panel; key never returned to the browser.
+   - **3b — Local model runner**: pick a GGUF → launch a user-provided `llama-server` **sidecar** (detect on PATH or point at the binary) → health-check → stream stdout to an in-app log → clean kill on exit; advanced flags terminal (`-ngl`, ctx-size, KV-cache, `--mmproj`). Ships a beginner-friendly build guide (published in `docs/`). **No auto-compile, no auto-download** — rejected as nines-breaking.
+   - **3c — Code-testing affordances**: in-app API reference + copy-paste curl/Python snippets (frontend catalog + a drift test asserting every catalog path exists in the bridge route table); preserve the existing live API log (already wired: `log_api_call` → WS → Dashboard).
 4. **Package** — PyInstaller "localhost app" per OS; optional pywebview native build. `opencv` / `pyaudio` stay optional ("enable hardware" extra) so the base build is lean and cross-platform-clean.
 
 **Deferred sub-projects (own specs later):** SP2 — real-robot bridge mode (teleop, live joint mirroring, **safety: e-stop, motion limits, connection-loss handling**). SP3 — sim→real one-command deploy/export.
@@ -161,14 +165,16 @@ export SIM_AI_MODEL="local"
 ## Conventions
 - **Python 3.11+** for the simulator/bridge middleware; **Python 2.7 ONLY** for `pepper/bridge.py` (NAOqi 2.5 constraint).
 - Keep `sim_bridge.py` **free of `pepper-ai` imports** — that decoupling is the whole point. Verify with `grep -rn "brains\.\|from core\|import core" simulator/` → must be empty.
-- AI is **optional and bring-your-own**. Never bundle a model or hardcode a provider. One dial: `base_url` + `api_key` + `model`.
+- AI is **optional and bring-your-own**. Never bundle weights or an inference binary; never hardcode a provider; never auto-compile or auto-download `llama-server`. The seam stays one dial — `base_url` + `api_key` + `model` — fed by three sources (cloud key / running local URL / GGUF-launched sidecar). Spawn the sidecar with args-as-list, never `shell=True`. The `api_key` is stored server-side only and never returned to the browser.
 - Frontend talks to the **bridge URL setting**, never a hardcoded host. Derive WS host from `window.location` for non-localhost.
 - Keep the dependency tree lean and PyInstaller-friendly. `opencv` / `pyaudio` are optional with graceful fallback (browser TTS is the default speech path).
 - `docs/` is gitignored — specs and plans live there locally and are not published.
 - Atomic file writes for any persisted state (`.tmp` → rename).
 
 ## Relationship to pepper-ai
-`pepper-ai` (the LLM brain) and Pepper Studio are **separate repos** connected only by the HTTP bridge contract. The brain is a *consumer*: it drives a Pepper (sim or real) by calling the same endpoints the Studio UI calls. Changes to the bridge contract affect both — coordinate them.
+**Decision (2026-06-01): the `pepper-ai` brain merges into Pepper Studio** — one all-inclusive package (control + brain). The brain runs in-app on top of the AI seam (cloud, running local server, or a `llama-server` sidecar launched from a GGUF). The HTTP bridge contract is still the seam between *control* and *brain*: the brain drives a Pepper (sim or real) by calling the same endpoints the Studio UI calls, so **a real robot's bridge never hosts the LLM**. `/ai/config` and `/ai/runner/*` are therefore **studio-side endpoints, not part of the robot contract** mirrored in `pepper/bridge.py`.
 
 ## Why this exists (scope discipline)
 Pepper is a **social / HRI robot** — conversation, greeting, memory of people, gaze, gesture, light navigation. It commercially flopped because its scripted dialogue was the weak link, not its hardware. The API-identical bridge + real physics + 3D viz is ~80% of a standalone product already; the friction to "app" was runtime (3 processes + venv/npm), which SP1 collapses. **Scope to Pepper's real strengths: conversation / memory / gaze / gesture / light-nav. NOT manipulation or rough mobility — the hardware can't.**
+
+**Update (2026-06-01):** the brain merges in — Studio becomes the whole package (control + brain), not just the bridge. The lean-packaging rule is unchanged: no weights, no inference binary; bring your own GGUF and `llama-server`.
