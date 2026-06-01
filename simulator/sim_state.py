@@ -491,13 +491,21 @@ class PepperState:
 
     # ─── Logging ─────────────────────────────────────────────────
 
+    _SENSITIVE_KEYS = ("api_key", "apiKey", "authorization", "Authorization")
+
     def log_api_call(self, endpoint, method, body=None, response=None):
         with self._lock:
+            safe_body = body
+            if isinstance(body, dict) and any(k in body for k in self._SENSITIVE_KEYS):
+                safe_body = dict(body)
+                for k in self._SENSITIVE_KEYS:
+                    if safe_body.get(k):
+                        safe_body[k] = "***"
             entry = {
                 "time": time.strftime("%H:%M:%S"),
                 "endpoint": endpoint,
                 "method": method,
-                "body": body,
+                "body": safe_body,
                 "response_preview": str(response)[:200] if response else None,
             }
             self.api_log.append(entry)

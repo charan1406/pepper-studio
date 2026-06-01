@@ -75,3 +75,14 @@ def test_save_returns_false_when_unwritable(tmp_path, monkeypatch):
 
     monkeypatch.setattr(ai_config.os, "makedirs", _raise)
     assert ai_config.save({"base_url": "http://x/v1"}) is False
+
+
+def test_log_api_call_redacts_api_key():
+    from sim_state import PepperState
+    p = PepperState()
+    body = {"base_url": "http://x/v1", "api_key": "supersecret"}
+    p.log_api_call("/ai/config", "POST", body=body, response={"success": True})
+    entry = p.api_log[-1]
+    assert entry["body"]["api_key"] == "***"
+    assert entry["body"]["base_url"] == "http://x/v1"
+    assert body["api_key"] == "supersecret"  # original dict not mutated
