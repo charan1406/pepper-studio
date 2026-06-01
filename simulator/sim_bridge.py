@@ -21,6 +21,7 @@ import os
 import mimetypes
 
 from llm import SimLLMClient
+import ai_config
 
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
@@ -71,18 +72,27 @@ DIST_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web", "dist
 
 # ─── LLM Brain (optional, bring-your-own) ─────────────────────────
 # Any OpenAI-compatible endpoint: local (llama-server/Ollama/LM Studio) or
-# cloud (set SIM_AI_API_KEY too). Empty SIM_AI_BASE_URL => AI off, /chat mocks.
-brain = SimLLMClient(
-    base_url=os.environ.get("SIM_AI_BASE_URL", ""),
-    api_key=os.environ.get("SIM_AI_API_KEY", ""),
-    model=os.environ.get("SIM_AI_MODEL", "local"),
-    timeout=int(os.environ.get("SIM_AI_TIMEOUT", "60")),
-)
+# cloud (set SIM_AI_API_KEY too). Config persisted in ~/.pepper-studio/ai.json;
+# runtime-settable via POST /ai/config. Empty base_url => AI off, /chat mocks.
+_ai_lock = threading.Lock()
+_ai_cfg = ai_config.load()
+
+
+def _build_brain(cfg):
+    return SimLLMClient(
+        base_url=cfg.get("base_url", ""),
+        api_key=cfg.get("api_key", ""),
+        model=cfg.get("model", "local"),
+        timeout=cfg.get("timeout", 60),
+    )
+
+
+brain = _build_brain(_ai_cfg)
 chat_history: list = []
 if brain.enabled:
     print(f"[LLM] AI enabled: {brain.base_url} (model={brain.model})")
 else:
-    print("[LLM] AI disabled — /chat returns mocks. Set SIM_AI_BASE_URL to enable.")
+    print("[LLM] AI disabled — /chat returns mocks. Set it via the AI panel or SIM_AI_BASE_URL.")
 
 # ─── Local TTS (Piper) ───────────────────────────────────────────
 # Optional: browser TTS is the default audio path. Piper only plays when the
@@ -325,6 +335,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
             "/navigate/map":   self._get_nav_map,
             "/posture/current": self._get_current_posture,
             "/joints/angles":  self._get_joint_angles,
+            "/ai/config":      self._get_ai_config,
         }
 
         handler = routes.get(path)
@@ -475,6 +486,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
             "/navigate/load":      self._post_nav_load,
             "/chat":               self._post_chat,
             "/search_results":     self._post_search_results,
+            "/ai/config":          self._post_ai_config,
+            "/ai/test":            self._post_ai_test,
         }
 
         handler = routes.get(path)
@@ -689,6 +702,56 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 "tools_used": [],
             }
         }
+
+    def _ai_config_data(self):
+        # caller holds _ai_lock
+        return {
+            "base_url": _ai_cfg.get("base_url", ""),
+            "model": _ai_cfg.get("model", "local"),
+            "timeout": _ai_cfg.get("timeout", 60),
+            "enabled": brain.enabled,
+            "key_set": bool(_ai_cfg.get("api_key")),
+        }
+
+    def _get_ai_config(self, params):
+        with _ai_lock:
+            return {"success": True, "data": self._ai_config_data()}
+
+    def _post_ai_config(self, body):
+        global brain
+        with _ai_lock:
+            if "base_url" in body:
+                _ai_cfg["base_url"] = str(body["base_url"]).rstrip("/")
+            if "model" in body:
+                _ai_cfg["model"] = str(body["model"]) or "local"
+            if "timeout" in body:
+                try:
+                    _ai_cfg["timeout"] = max(5, min(600, int(body["timeout"])))
+                except (TypeError, ValueError):
+                    pass
+            if "api_key" in body:
+                _ai_cfg["api_key"] = str(body["api_key"])  # "" clears it
+            brain = _build_brain(_ai_cfg)
+            ai_config.save(_ai_cfg)
+            return {"success": True, "data": self._ai_config_data()}
+
+    def _post_ai_test(self, body):
+        # NOTE: HTTPServer is single-threaded, so this blocks other requests for
+        # up to `timeout`s. Kept short for that reason. (Threading the server is a
+        # separate change — /chat has the same property.)
+        client = SimLLMClient(
+            base_url=str(body.get("base_url", "")).rstrip("/"),
+            api_key=str(body.get("api_key", "")),
+            model=str(body.get("model", "local")) or "local",
+            timeout=5,
+        )
+        if not client.enabled:
+            return {"success": False, "error": "No base_url provided"}
+        resp = client.chat("ping")
+        out = {"success": resp.success, "data": {"tok_per_sec": resp.tok_per_sec}}
+        if not resp.success:
+            out["error"] = resp.error
+        return out
 
     def _query_llm(self, text):
         """Try the configured AI → mock fallback."""
