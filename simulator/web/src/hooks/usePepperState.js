@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { useEffect, useRef, useCallback } from 'react';
+import { createStateSource } from '../lib/stateSource';
+import { getState } from '../lib/bridge';
 
 /**
  * Zustand store for Pepper's state.
@@ -7,6 +9,7 @@ import { useEffect, useRef, useCallback } from 'react';
  */
 export const usePepperStore = create((set) => ({
   connected: false,
+  source: 'disconnected',   // 'ws' | 'poll' | 'disconnected'
   state: null,
 
   // Position
@@ -115,7 +118,9 @@ export const usePepperStore = create((set) => ({
     searchResults: state.searchResults.filter((r) => r.id !== id),
   })),
 
-  setDisconnected: () => set({ connected: false }),
+  setSource: (source) => set({ source, connected: source !== 'disconnected' }),
+
+  setDisconnected: () => set({ connected: false, source: 'disconnected' }),
 }));
 
 
@@ -156,54 +161,20 @@ const WS_PORT = 5003;
 const WS_SCHEME = window.location.protocol === 'https:' ? 'wss' : 'ws';
 const DEFAULT_WS_URL = `${WS_SCHEME}://${window.location.hostname}:${WS_PORT}`;
 
-export function usePepperWebSocket(url = DEFAULT_WS_URL) {
-  const wsRef = useRef(null);
-  const reconnectRef = useRef(null);
+export function usePepperConnection() {
   const updateFromWS = usePepperStore((s) => s.updateFromWS);
-  const setDisconnected = usePepperStore((s) => s.setDisconnected);
+  const setSource = usePepperStore((s) => s.setSource);
 
   useEffect(() => {
-    function connect() {
-      if (wsRef.current?.readyState === WebSocket.OPEN) return;
-
-      const ws = new WebSocket(url);
-      wsRef.current = ws;
-
-      ws.onopen = () => {
-        console.log('[WS] Connected to simulator');
-        if (reconnectRef.current) {
-          clearInterval(reconnectRef.current);
-          reconnectRef.current = null;
-        }
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          updateFromWS(data);
-        } catch (e) {
-          // ignore parse errors
-        }
-      };
-
-      ws.onclose = () => {
-        setDisconnected();
-        console.log('[WS] Disconnected. Reconnecting...');
-        if (!reconnectRef.current) {
-          reconnectRef.current = setInterval(() => connect(), 2000);
-        }
-      };
-
-      ws.onerror = () => {
-        ws.close();
-      };
-    }
-
-    connect();
-
-    return () => {
-      if (reconnectRef.current) clearInterval(reconnectRef.current);
-      if (wsRef.current) wsRef.current.close();
-    };
-  }, [url, updateFromWS, setDisconnected]);
+    const forced = new URLSearchParams(window.location.search).get('source');
+    const src = createStateSource({
+      wsUrl: DEFAULT_WS_URL,
+      getState,
+      onData: updateFromWS,
+      onSource: setSource,
+      forceSource: forced === 'poll' ? 'poll' : null,
+    });
+    src.start();
+    return () => src.stop();
+  }, [updateFromWS, setSource]);
 }
