@@ -19,9 +19,13 @@ import wave
 import io
 import os
 import mimetypes
+import atexit
+import signal
+import sys
 
 from llm import SimLLMClient
 import ai_config
+import runner
 
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
@@ -74,7 +78,7 @@ DIST_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web", "dist
 # Any OpenAI-compatible endpoint: local (llama-server/Ollama/LM Studio) or
 # cloud (set SIM_AI_API_KEY too). Config persisted in ~/.pepper-studio/ai.json;
 # runtime-settable via POST /ai/config. Empty base_url => AI off, /chat mocks.
-_ai_lock = threading.Lock()
+_ai_lock = threading.RLock()  # reentrant: _post_ai_config holds it and calls _rebuild_brain
 _ai_cfg = ai_config.load()
 
 
@@ -93,6 +97,24 @@ if brain.enabled:
     print(f"[LLM] AI enabled: {brain.base_url} (model={brain.model})")
 else:
     print("[LLM] AI disabled — /chat returns mocks. Set it via the AI panel or SIM_AI_BASE_URL.")
+
+_runner_cfg = runner.load()
+
+
+def _rebuild_brain():
+    """Point brain at the runner sidecar while it's ready, else the persisted dial."""
+    global brain
+    with _ai_lock:
+        rb, rm = runner.active()
+        if rb:
+            cfg = {"base_url": rb, "model": rm, "api_key": "", "timeout": _ai_cfg.get("timeout", 60)}
+        else:
+            cfg = _ai_cfg
+        brain = _build_brain(cfg)
+
+
+runner.set_callbacks(on_ready=lambda url, model: _rebuild_brain(),
+                     on_exit=_rebuild_brain)
 
 # ─── Local TTS (Piper) ───────────────────────────────────────────
 # Optional: browser TTS is the default audio path. Piper only plays when the
@@ -336,6 +358,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
             "/posture/current": self._get_current_posture,
             "/joints/angles":  self._get_joint_angles,
             "/ai/config":      self._get_ai_config,
+            "/ai/runner/status": self._get_runner_status,
+            "/ai/runner/models": self._get_runner_models,
         }
 
         handler = routes.get(path)
@@ -488,6 +512,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
             "/search_results":     self._post_search_results,
             "/ai/config":          self._post_ai_config,
             "/ai/test":            self._post_ai_test,
+            "/ai/runner/start":    self._post_runner_start,
+            "/ai/runner/stop":     self._post_runner_stop,
         }
 
         handler = routes.get(path)
@@ -731,8 +757,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
                     pass
             if "api_key" in body:
                 _ai_cfg["api_key"] = str(body["api_key"])  # "" clears it
-            brain = _build_brain(_ai_cfg)
             ai_config.save(_ai_cfg)
+            _rebuild_brain()
             return {"success": True, "data": self._ai_config_data()}
 
     def _post_ai_test(self, body):
@@ -752,6 +778,34 @@ class BridgeHandler(BaseHTTPRequestHandler):
         if not resp.success:
             out["error"] = resp.error
         return out
+
+    def _get_runner_status(self, params):
+        return {"success": True, "data": runner.status()}
+
+    def _get_runner_models(self, params):
+        d = params.get("dir", [""])[0]
+        if d:
+            _runner_cfg["models_dir"] = os.path.expanduser(d)
+            runner.save(_runner_cfg)
+        models_dir = _runner_cfg.get("models_dir", "")
+        return {"success": True, "data": {"dir": models_dir, "models": runner.list_models(models_dir)}}
+
+    def _post_runner_start(self, body):
+        flags = {k: body.get(k) for k in ("ngl", "ctx", "cache_type", "flash_attn", "mmproj", "extra_args")}
+        if body.get("models_dir") is not None:
+            _runner_cfg["models_dir"] = os.path.expanduser(str(body["models_dir"]))
+        if body.get("binary") is not None:
+            _runner_cfg["binary"] = str(body["binary"])
+        _runner_cfg["gguf"] = str(body.get("gguf", ""))
+        _runner_cfg["flags"] = flags
+        runner.save(_runner_cfg)
+        gguf = str(body.get("gguf", ""))
+        if gguf and not os.path.isabs(os.path.expanduser(gguf)) and _runner_cfg.get("models_dir"):
+            gguf = os.path.join(_runner_cfg["models_dir"], gguf)
+        return {"success": True, "data": runner.start(gguf, flags, binary=_runner_cfg.get("binary") or None)}
+
+    def _post_runner_stop(self, body):
+        return {"success": True, "data": runner.stop()}
 
     def _query_llm(self, text):
         """Try the configured AI → mock fallback."""
@@ -869,10 +923,14 @@ def main():
         opener.daemon = True
         opener.start()
 
+    atexit.register(runner.stop)
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))  # → atexit → runner.stop
+
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         print("\n[SHUTDOWN] Closing simulator...")
+        runner.stop()
         webcam.close()
         audio_manager.close()
         server.server_close()
