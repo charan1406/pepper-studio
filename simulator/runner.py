@@ -224,6 +224,8 @@ def _poll_health(proc, port, model_name):
         except (urllib.error.URLError, ConnectionError, OSError):
             pass
         time.sleep(0.5)
+    # Timeout: leave proc set (it may still be alive) so stop() can reap it; do NOT
+    # clear proc or fire on_exit here — the brain never switched to a ready sidecar.
     with _lock:
         if _state["proc"] is proc and _state["state"] != "ready":
             _state.update(state="error", error="timed out waiting for llama-server /health")

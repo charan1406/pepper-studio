@@ -365,7 +365,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
         handler = routes.get(path)
         if handler:
             response = handler(params)
-            pepper.log_api_call(path, "GET", response=response)
+            if path != "/ai/runner/status":  # frontend polls this ~1.5s; don't flood the API log
+                pepper.log_api_call(path, "GET", response=response)
             self._send_json(response)
         else:
             self._serve_static(path)
