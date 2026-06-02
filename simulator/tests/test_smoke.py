@@ -48,6 +48,7 @@ def test_single_process_end_to_end():
         "SIM_WS_PORT": str(ws_port),
         "SIM_OPEN_BROWSER": "0",
         "SIM_AI_BASE_URL": "",  # AI off → mock
+        "SIM_PIPER_MODEL": "/nonexistent.onnx",  # piper off → exercise the core flow only
     })
     proc = subprocess.Popen(
         [sys.executable, "sim_bridge.py"],

@@ -7,3 +7,9 @@ websockets>=12.0
 # opencv-python>=4.8.0
 # numpy>=1.24.0
 # pyaudio>=0.2.13
+
+# Optional natural voice (Piper neural TTS, run as a sidecar process). Without
+# these, speech falls back to the browser's built-in TTS. Also needs the `aplay`
+# binary (alsa-utils) and a voice .onnx model; point at it with SIM_PIPER_MODEL.
+# piper-tts>=1.4.0
+# flask>=3.0.0

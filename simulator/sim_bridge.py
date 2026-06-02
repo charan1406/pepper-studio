@@ -11,6 +11,9 @@ to broadcast state updates to the 3D web frontend.
 import json
 import time
 import datetime
+import importlib.util
+import socket
+import urllib.request
 import base64
 import struct
 import threading
@@ -120,55 +123,132 @@ def _rebuild_brain():
 runner.set_callbacks(on_ready=lambda url, model: _rebuild_brain(),
                      on_exit=_rebuild_brain)
 
-# ─── Local TTS (Piper) ───────────────────────────────────────────
-# Optional: browser TTS is the default audio path. Piper only plays when the
-# binary, aplay, and the model file are all present. When it can't play, we
-# leave _tts_process = None so the caller falls back to a time-based estimate
-# for is_speaking instead of waiting on a pipeline that exits instantly.
+# ─── Local TTS (Piper sidecar) ───────────────────────────────────
+# Browser TTS is the default audio path. When piper-tts + flask + aplay + a model
+# are present, we run `python -m piper.http_server` as a SIDECAR (separate
+# process). Piper/onnxruntime/espeak hold the GIL for seconds during load+synth,
+# so running them in-process would freeze the single-threaded bridge; a fresh
+# `piper` subprocess per utterance reloaded the ~100 MB model every time (5-7 s).
+# The sidecar loads the voice ONCE; the bridge POSTs text, gets a WAV, and plays
+# it via aplay on a background thread (pure I/O → GIL-friendly). Until the sidecar
+# is ready, server_tts stays False so browser TTS covers the gap.
 PIPER_MODEL = os.path.expanduser(os.environ.get("SIM_PIPER_MODEL") or "~/models/piper/en_US-amy-medium.onnx")
 
 
-def _resolve_piper_bin():
-    """Find the piper binary: SIM_PIPER_BIN, else the venv running this process
-    (`pip install piper-tts` lands it next to the interpreter), else PATH."""
-    env_bin = os.environ.get("SIM_PIPER_BIN")
-    if env_bin and os.path.exists(os.path.expanduser(env_bin)):
-        return os.path.expanduser(env_bin)
-    venv_bin = os.path.join(os.path.dirname(sys.executable), "piper")
-    if os.path.exists(venv_bin):
-        return venv_bin
-    return shutil.which("piper")
-
-
-PIPER_BIN = _resolve_piper_bin()
-_PIPER_OK = bool(PIPER_BIN and shutil.which("aplay") and os.path.exists(PIPER_MODEL))
-_tts_process = None
-
-def speak_local(text: str):
-    """Play speech via piper TTS if available; otherwise no-op (browser TTS handles audio)."""
-    global _tts_process
-    if _tts_process and _tts_process.poll() is None:
-        _tts_process.terminate()
-    _tts_process = None
-    if not _PIPER_OK:
-        return
-    piper_bin = PIPER_BIN or "piper"  # _PIPER_OK guarantees it's set; keeps the type checker happy
+def _piper_deps_ok():
     try:
-        _tts_process = subprocess.Popen(
-            f'echo {_shell_quote(text)} | {_shell_quote(piper_bin)} --model {_shell_quote(PIPER_MODEL)} --output-raw 2>/dev/null | aplay -r 22050 -f S16_LE -q 2>/dev/null',
-            shell=True,
-        )
-    except Exception as e:
-        print(f"[TTS] Piper error: {e}")
-        _tts_process = None
+        return bool(importlib.util.find_spec("piper") and importlib.util.find_spec("flask")
+                    and shutil.which("aplay") and os.path.exists(PIPER_MODEL))
+    except Exception:
+        return False
 
-def _shell_quote(s: str) -> str:
-    return "'" + s.replace("'", "'\\''") + "'"
+
+_PIPER_OK = _piper_deps_ok()
+_piper_proc = None      # the sidecar process
+_piper_port = None
+_piper_ready = False    # True once the sidecar answers; gates server_tts
+_tts_lock = threading.Lock()
+_tts_process = None     # current aplay process
+
+
+def _free_port():
+    s = socket.socket()
+    s.bind(("127.0.0.1", 0))
+    p = s.getsockname()[1]
+    s.close()
+    return p
+
+
+def start_piper_sidecar():
+    """Spawn the piper HTTP server; a watcher flips _piper_ready once it answers."""
+    global _piper_proc, _piper_port
+    if not _PIPER_OK or _piper_proc is not None:
+        return
+    _piper_port = _free_port()
+    _piper_proc = subprocess.Popen(
+        [sys.executable, "-m", "piper.http_server", "-m", PIPER_MODEL,
+         "--host", "127.0.0.1", "--port", str(_piper_port)],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+    atexit.register(stop_piper_sidecar)
+    threading.Thread(target=_wait_piper_ready, daemon=True).start()
+
+
+def _wait_piper_ready():
+    global _piper_ready
+    url = f"http://127.0.0.1:{_piper_port}/"
+    deadline = time.time() + 60
+    while time.time() < deadline:
+        if _piper_proc is None or _piper_proc.poll() is not None:
+            print("[TTS] piper sidecar exited during startup")
+            return
+        try:
+            # real word: the server errors on empty/punctuation-only text (no audio → no WAV channels)
+            req = urllib.request.Request(url, data=b'{"text":"ready"}',
+                                         headers={"Content-Type": "application/json"}, method="POST")
+            with urllib.request.urlopen(req, timeout=5):
+                _piper_ready = True
+                print(f"[TTS] Piper voice ready ({os.path.basename(PIPER_MODEL)})")
+                return
+        except Exception:
+            time.sleep(0.5)
+    print("[TTS] piper sidecar did not become ready in time")
+
+
+def stop_piper_sidecar():
+    global _piper_proc
+    if _piper_proc and _piper_proc.poll() is None:
+        _piper_proc.terminate()
+        try:
+            _piper_proc.wait(timeout=3)
+        except Exception:
+            _piper_proc.kill()
+    _piper_proc = None
+
+
+def _speak_worker(text):
+    global _tts_process
+    try:
+        req = urllib.request.Request(
+            f"http://127.0.0.1:{_piper_port}/",
+            data=json.dumps({"text": text}).encode(),
+            headers={"Content-Type": "application/json"}, method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=30) as r:
+            wav = r.read()
+    except Exception as e:
+        print(f"[TTS] piper synth error: {e}")
+        return
+    with _tts_lock:
+        if _tts_process and _tts_process.poll() is None:
+            _tts_process.terminate()    # interrupt whatever is playing
+        try:
+            _tts_process = subprocess.Popen(["aplay", "-q"], stdin=subprocess.PIPE)
+        except Exception as e:
+            print(f"[TTS] aplay error: {e}")
+            _tts_process = None
+            return
+        proc = _tts_process
+    try:
+        if proc.stdin:
+            proc.stdin.write(wav)   # aplay -q reads format from the WAV header
+            proc.stdin.close()
+    except Exception:
+        pass
+
+
+def speak_local(text):
+    """Synthesize+play via the piper sidecar on a background thread. No-op until
+    the sidecar is ready (server_tts=False then, so browser TTS covers it)."""
+    if _piper_ready and text:
+        threading.Thread(target=_speak_worker, args=(text,), daemon=True).start()
+
 
 def stop_local_tts():
     global _tts_process
-    if _tts_process and _tts_process.poll() is None:
-        _tts_process.terminate()
+    with _tts_lock:
+        if _tts_process and _tts_process.poll() is None:
+            _tts_process.terminate()
 
 
 # ─── Webcam Manager ───────────────────────────────────────────────
@@ -595,10 +675,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
         pepper.say(text, language, speed, pitch)
         speak_local(text)
         def finish():
-            if _tts_process:
-                _tts_process.wait()
-            else:
-                time.sleep(max(1.0, len(text.split()) * 0.15 * (100 / speed)))
+            # playback is async (piper sidecar); estimate the spoken duration
+            time.sleep(max(1.0, len(text.split()) * 0.15 * (100 / speed)))
             pepper.finish_speaking()
         threading.Thread(target=finish, daemon=True).start()
         print(f"[SPEAK] ({language}) {text}")
@@ -774,10 +852,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
         pepper.say(response_text, "en")
         speak_local(response_text)
         def finish():
-            if _tts_process:
-                _tts_process.wait()
-            else:
-                time.sleep(max(1.0, len(response_text.split()) * 0.15))
+            # playback is async (piper sidecar); estimate the spoken duration
+            time.sleep(max(1.0, len(response_text.split()) * 0.15))
             pepper.finish_speaking()
         threading.Thread(target=finish, daemon=True).start()
 
@@ -907,7 +983,7 @@ async def ws_handler(websocket):
     try:
         while True:
             state = pepper.to_dict()
-            state["server_tts"] = _PIPER_OK  # when Piper plays audio here, the UI stays silent (no double voice)
+            state["server_tts"] = _piper_ready  # True only once the sidecar serves; browser TTS covers warmup
             await websocket.send(json.dumps(state))
             if state.get("search_results"):
                 pepper.clear_search_results()
@@ -967,6 +1043,13 @@ def main():
     if HAS_WEBSOCKETS:
         ws_thread = threading.Thread(target=run_ws_in_thread, daemon=True)
         ws_thread.start()
+
+    # Start the Piper TTS sidecar (separate process; loads the voice once)
+    if _PIPER_OK:
+        start_piper_sidecar()
+        print("[TTS] Piper sidecar starting — browser TTS until the voice is ready")
+    else:
+        print("[TTS] Piper not available — browser TTS")
 
     # Start HTTP bridge server
     server = HTTPServer(("0.0.0.0", SIM_BRIDGE_PORT), BridgeHandler)
