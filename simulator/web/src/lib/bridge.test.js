@@ -5,6 +5,7 @@ import {
   setEyeColor, listAnimations, runAnimation, setHead, navigateTo,
   getAiConfig, setAiConfig, testAiConfig,
   getRunnerStatus, listModels, startRunner, stopRunner,
+  getState,
 } from './bridge';
 
 function mockFetch(jsonBody = { success: true, data: {} }, ok = true, status = 200) {
@@ -38,6 +39,18 @@ describe('bridge URL setting', () => {
     setBridgeUrl('http://x:5001');
     setBridgeUrl('');
     expect(getBridgeUrl()).toBe(window.location.origin);
+  });
+});
+
+describe('state polling client', () => {
+  it('getState GETs /state on the configured bridge URL', async () => {
+    setBridgeUrl('http://robot.local:5001');
+    const fetchMock = mockFetch({ success: true, data: { battery: 88 } });
+    const res = await getState();
+    const [url, opts] = fetchMock.mock.calls[0];
+    expect(url).toBe('http://robot.local:5001/state');
+    expect(opts).toBeUndefined();
+    expect(res.data.battery).toBe(88);
   });
 });
 
