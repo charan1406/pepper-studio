@@ -363,11 +363,19 @@ class BridgeHandler(BaseHTTPRequestHandler):
             return
 
         ctype, _ = mimetypes.guess_type(full)
+        # index.html has a stable name, so a cached copy keeps loading an old,
+        # pre-rebuild entry point (→ stale JS, e.g. missing the server_tts guard).
+        # Force it to revalidate; content-hashed assets are safe to cache forever.
+        if rel.startswith("assets/"):
+            cache = "public, max-age=31536000, immutable"
+        else:
+            cache = "no-cache"
         with open(full, "rb") as f:
             body = f.read()
         self.send_response(200)
         self.send_header("Content-Type", ctype or "application/octet-stream")
         self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", cache)
         self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         self.wfile.write(body)
