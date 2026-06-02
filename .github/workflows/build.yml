@@ -44,6 +44,16 @@ jobs:
       - name: Build onedir bundle
         run: pyinstaller pepper-studio.spec --noconfirm
 
+      - name: Smoke test (launch + serve)
+        shell: bash      # available on the Windows runner too (Git Bash)
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then BIN="dist/pepper-studio/pepper-studio.exe"; else BIN="dist/pepper-studio/pepper-studio"; fi
+          SIM_OPEN_BROWSER=0 "$BIN" & PID=$!
+          code=$(curl -s --retry 30 --retry-delay 1 --retry-connrefused -o /dev/null -w "%{http_code}" http://localhost:5001/ai/config || true)
+          kill "$PID" 2>/dev/null || true
+          echo "smoke: GET /ai/config -> $code"
+          [ "$code" = "200" ]
+
       - uses: actions/upload-artifact@v4
         with:
           name: pepper-studio-${{ runner.os }}   # Linux / macOS / Windows
