@@ -7,6 +7,7 @@ import { useEffect, useRef, useCallback } from 'react';
  */
 export const usePepperStore = create((set) => ({
   connected: false,
+  serverTts: false,   // bridge plays audio via Piper → browser TTS stays silent
   state: null,
 
   // Position
@@ -83,6 +84,7 @@ export const usePepperStore = create((set) => ({
       isSpeaking: data.is_speaking ?? false,
       currentSpeech: data.current_speech ?? '',
       speechLanguage: data.speech_language ?? 'en',
+      serverTts: data.server_tts ?? false,
       eyeColor: data.eye_color ?? { r: 255, g: 255, b: 255 },
       tabletVisible: data.tablet?.visible ?? false,
       tabletUrl: data.tablet?.url ?? '',
@@ -125,9 +127,11 @@ export const usePepperStore = create((set) => ({
 export function useBrowserTTS() {
   const currentSpeech = usePepperStore((s) => s.currentSpeech);
   const speechLanguage = usePepperStore((s) => s.speechLanguage);
+  const serverTts = usePepperStore((s) => s.serverTts);
   const lastSpoken = useRef('');
 
   useEffect(() => {
+    if (serverTts) return;   // bridge speaks via Piper — don't double up in the browser
     if (!currentSpeech || currentSpeech === lastSpoken.current) return;
     if (!window.speechSynthesis) {
       console.warn('[TTS] speechSynthesis not available');
@@ -142,7 +146,7 @@ export function useBrowserTTS() {
     console.log('[TTS] Speaking:', currentSpeech);
     window.speechSynthesis.speak(utterance);
     lastSpoken.current = currentSpeech;
-  }, [currentSpeech, speechLanguage]);
+  }, [currentSpeech, speechLanguage, serverTts]);
 }
 
 

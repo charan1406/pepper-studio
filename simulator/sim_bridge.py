@@ -125,7 +125,7 @@ runner.set_callbacks(on_ready=lambda url, model: _rebuild_brain(),
 # binary, aplay, and the model file are all present. When it can't play, we
 # leave _tts_process = None so the caller falls back to a time-based estimate
 # for is_speaking instead of waiting on a pipeline that exits instantly.
-PIPER_MODEL = os.path.expanduser("~/models/piper/en_US-amy-medium.onnx")
+PIPER_MODEL = os.path.expanduser(os.environ.get("SIM_PIPER_MODEL") or "~/models/piper/en_US-amy-medium.onnx")
 _PIPER_OK = bool(shutil.which("piper") and shutil.which("aplay") and os.path.exists(PIPER_MODEL))
 _tts_process = None
 
@@ -883,6 +883,7 @@ async def ws_handler(websocket):
     try:
         while True:
             state = pepper.to_dict()
+            state["server_tts"] = _PIPER_OK  # when Piper plays audio here, the UI stays silent (no double voice)
             await websocket.send(json.dumps(state))
             if state.get("search_results"):
                 pepper.clear_search_results()
