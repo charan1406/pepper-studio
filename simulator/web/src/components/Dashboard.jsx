@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { usePepperStore } from '../hooks/usePepperState';
+import ApiReference from './ApiReference';
 
 /**
  * Dashboard panel showing:
@@ -192,6 +193,8 @@ export default function Dashboard() {
   const apiLog = usePepperStore((s) => s.apiLog);
   const joints = usePepperStore((s) => s.joints);
 
+  const [showApiRef, setShowApiRef] = useState(false);
+
   const formatTime = (s) => {
     const h = Math.floor(s / 3600);
     const m = Math.floor((s % 3600) / 60);
@@ -281,9 +284,14 @@ export default function Dashboard() {
       </div>
 
       {/* API Log */}
-      <div style={{ ...styles.section, padding: '12px 20px 4px' }}>
+      <div style={{ ...styles.section, padding: '12px 20px 4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={styles.sectionTitle}>API Log</div>
+        <button
+          onClick={() => setShowApiRef(true)}
+          style={{ padding: '3px 8px', background: '#3a3a3c', border: '1px solid #4a4a4c', borderRadius: '5px', color: '#e5e5e5', fontSize: '10px', cursor: 'pointer', fontFamily: 'inherit' }}
+        >API Reference</button>
       </div>
+      {showApiRef && <ApiReference onClose={() => setShowApiRef(false)} />}
       <div style={styles.logContainer}>
         {[...apiLog].reverse().map((entry, i) => (
           <div key={i} style={styles.logEntry}>
