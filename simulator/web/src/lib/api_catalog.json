@@ -1,0 +1,28 @@
+[
+  { "section": "Robot API", "method": "GET",  "path": "/health", "body": null, "desc": "Bridge health, battery, uptime." },
+  { "section": "Robot API", "method": "GET",  "path": "/battery", "body": null, "desc": "Battery level and charging state." },
+  { "section": "Robot API", "method": "GET",  "path": "/posture/current", "body": null, "desc": "Current posture name." },
+  { "section": "Robot API", "method": "GET",  "path": "/joints/angles?names=Body", "body": null, "desc": "Current joint angles (names=Body|Head|<joint>)." },
+  { "section": "Robot API", "method": "GET",  "path": "/navigate/position", "body": null, "desc": "Robot pose (x, y, theta)." },
+  { "section": "Robot API", "method": "GET",  "path": "/animation/list", "body": null, "desc": "Available animation names." },
+  { "section": "Robot API", "method": "POST", "path": "/move/velocity", "body": { "x": 0.5, "y": 0, "theta": 0 }, "desc": "Drive at a velocity (x fwd, y left, theta turn; -1..1)." },
+  { "section": "Robot API", "method": "POST", "path": "/move/to", "body": { "x": 1.0, "y": 0, "theta": 0 }, "desc": "Move to a relative pose (meters, rad)." },
+  { "section": "Robot API", "method": "POST", "path": "/move/stop", "body": {}, "desc": "Stop all base motion." },
+  { "section": "Robot API", "method": "POST", "path": "/posture/set", "body": { "posture": "Stand", "speed": 0.5 }, "desc": "Go to a named posture." },
+  { "section": "Robot API", "method": "POST", "path": "/head/set", "body": { "yaw": 0.0, "pitch": 0.0, "speed": 0.2 }, "desc": "Set head yaw/pitch (rad)." },
+  { "section": "Robot API", "method": "POST", "path": "/joints/set", "body": { "names": ["HeadYaw"], "angles": [0.3], "speed": 0.2 }, "desc": "Set joint target angles (rad)." },
+  { "section": "Robot API", "method": "POST", "path": "/leds/eyes", "body": { "r": 0, "g": 255, "b": 0 }, "desc": "Set eye LED color (0-255)." },
+  { "section": "Robot API", "method": "POST", "path": "/leds/ears", "body": { "intensity": 1.0 }, "desc": "Set ear LED intensity (0-1)." },
+  { "section": "Robot API", "method": "POST", "path": "/animation/run", "body": { "name": "animations/Stand/Gestures/Hey_1" }, "desc": "Play a named animation." },
+  { "section": "Robot API", "method": "POST", "path": "/speak", "body": { "text": "Hello!", "language": "en" }, "desc": "Speak text (TTS)." },
+  { "section": "Robot API", "method": "POST", "path": "/speak/stop", "body": {}, "desc": "Stop speaking." },
+  { "section": "Robot API", "method": "POST", "path": "/navigate/goto", "body": { "x": 1.0, "y": 1.0, "theta": 0 }, "desc": "Navigate to an absolute pose." },
+
+  { "section": "Studio API", "method": "GET",  "path": "/ai/config", "body": null, "desc": "Current AI dial (api_key never returned)." },
+  { "section": "Studio API", "method": "GET",  "path": "/ai/runner/status", "body": null, "desc": "Local model runner state + log." },
+  { "section": "Studio API", "method": "POST", "path": "/ai/config", "body": { "base_url": "http://localhost:8090/v1", "model": "local", "api_key": "" }, "desc": "Set the AI provider (api_key stays server-side; '' clears it)." },
+  { "section": "Studio API", "method": "POST", "path": "/ai/test", "body": { "base_url": "http://localhost:8090/v1", "model": "local" }, "desc": "Test an AI endpoint without saving." },
+  { "section": "Studio API", "method": "POST", "path": "/ai/runner/start", "body": { "gguf": "model.gguf", "models_dir": "~/models/gguf", "ngl": 20 }, "desc": "Launch a llama-server sidecar on a GGUF." },
+  { "section": "Studio API", "method": "POST", "path": "/ai/runner/stop", "body": {}, "desc": "Stop the sidecar." },
+  { "section": "Studio API", "method": "POST", "path": "/chat", "body": { "text": "Hello, Pepper!" }, "desc": "Chat with the AI brain (mock if no AI configured)." }
+]
