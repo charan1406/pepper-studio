@@ -389,8 +389,10 @@ class BridgeHandler(BaseHTTPRequestHandler):
     def _get_state(self, p):
         """Compose a full state snapshot matching the sim's to_dict() shape.
         Each getter is guarded: a failing subsystem omits its field rather than
-        failing the whole poll. Fields the robot can't report (speech, eyes,
-        animation) are simply absent; the frontend keeps last-known values."""
+        failing the whole poll. Fields a real Pepper doesn't report here (speech,
+        eyes, animation) are omitted; the frontend falls back to its defaults for
+        them on each poll. Widening coverage (TTS/LED/animation getters) is a
+        hardware-pass item."""
         data = {"simulator": False}
         try:
             names = naoqi.motion.getBodyNames("Body")
