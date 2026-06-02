@@ -72,7 +72,10 @@ pa = None
 SIM_WEB_PORT = int(os.environ.get("SIM_WEB_PORT", 5002))
 SIM_WS_PORT = int(os.environ.get("SIM_WS_PORT", 5003))
 SIM_BRIDGE_PORT = int(os.environ.get("SIM_BRIDGE_PORT", 5001))
-DIST_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web", "dist")
+# Frozen (PyInstaller) puts bundled data under sys._MEIPASS; source run uses
+# this file's directory. web/dist is added to the bundle via the .spec datas.
+_BASE_DIR = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+DIST_DIR = os.path.join(_BASE_DIR, "web", "dist")
 
 # ─── LLM Brain (optional, bring-your-own) ─────────────────────────
 # Any OpenAI-compatible endpoint: local (llama-server/Ollama/LM Studio) or
