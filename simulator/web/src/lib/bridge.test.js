@@ -4,6 +4,7 @@ import {
   moveVelocity, stopMove, setPosture, speak, stopSpeak,
   setEyeColor, listAnimations, runAnimation, setHead, navigateTo,
   getAiConfig, setAiConfig, testAiConfig,
+  getRunnerStatus, listModels, startRunner, stopRunner,
 } from './bridge';
 
 function mockFetch(jsonBody = { success: true, data: {} }, ok = true, status = 200) {
@@ -149,6 +150,37 @@ describe('AI config client', () => {
     await testAiConfig({ base_url: 'http://x/v1' });
     const [url, opts] = fetchMock.mock.calls[0];
     expect(url).toContain('/ai/test');
+    expect(opts.method).toBe('POST');
+  });
+});
+
+describe('runner client', () => {
+  it('getRunnerStatus GETs /ai/runner/status', async () => {
+    const fetchMock = mockFetch();
+    await getRunnerStatus();
+    expect(fetchMock.mock.calls[0][0]).toContain('/ai/runner/status');
+  });
+
+  it('listModels encodes the dir', async () => {
+    const fetchMock = mockFetch();
+    await listModels('/my models');
+    expect(fetchMock.mock.calls[0][0]).toContain('/ai/runner/models?dir=%2Fmy%20models');
+  });
+
+  it('startRunner POSTs the body to /ai/runner/start', async () => {
+    const fetchMock = mockFetch();
+    await startRunner({ gguf: 'x.gguf', ngl: 20 });
+    const [url, opts] = fetchMock.mock.calls[0];
+    expect(url).toContain('/ai/runner/start');
+    expect(opts.method).toBe('POST');
+    expect(JSON.parse(opts.body)).toEqual({ gguf: 'x.gguf', ngl: 20 });
+  });
+
+  it('stopRunner POSTs /ai/runner/stop', async () => {
+    const fetchMock = mockFetch();
+    await stopRunner();
+    const [url, opts] = fetchMock.mock.calls[0];
+    expect(url).toContain('/ai/runner/stop');
     expect(opts.method).toBe('POST');
   });
 });

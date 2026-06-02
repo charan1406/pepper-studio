@@ -53,6 +53,12 @@ export const getAiConfig = () => get('/ai/config');
 export const setAiConfig = (cfg) => post('/ai/config', cfg);
 export const testAiConfig = (cfg) => post('/ai/test', cfg);
 
+// Local model runner (llama-server sidecar).
+export const getRunnerStatus = () => get('/ai/runner/status');
+export const listModels = (dir) => get(`/ai/runner/models?dir=${encodeURIComponent(dir || '')}`);
+export const startRunner = (body) => post('/ai/runner/start', body);
+export const stopRunner = () => post('/ai/runner/stop', {});
+
 // Posture + head-limit constants (from sim_state.py) for the UI.
 export const POSTURES = ['Stand', 'StandInit', 'StandZero', 'Crouch', 'Sit', 'SitRelax'];
 export const HEAD_LIMITS = { yaw: [-2.0857, 2.0857], pitch: [-0.7068, 0.6371] };
