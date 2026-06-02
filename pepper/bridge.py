@@ -235,6 +235,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
             "/navigate/map": self._get_nav_map,
             "/posture/current": self._get_current_posture,
             "/joints/angles": self._get_joint_angles,
+            "/state": self._get_state,
         }
 
         handler = handlers.get(path)
@@ -384,6 +385,33 @@ class BridgeHandler(BaseHTTPRequestHandler):
             return {"success": True, "data": {"names": names, "angles": list(angles)}}
         except Exception as e:
             return self._error(str(e))
+
+    def _get_state(self, p):
+        """Compose a full state snapshot matching the sim's to_dict() shape.
+        Each getter is guarded: a failing subsystem omits its field rather than
+        failing the whole poll. Fields the robot can't report (speech, eyes,
+        animation) are simply absent; the frontend keeps last-known values."""
+        data = {"simulator": False}
+        try:
+            names = naoqi.motion.getBodyNames("Body")
+            angles = naoqi.motion.getAngles(names, True)
+            data["joints"] = dict(zip(names, list(angles)))
+        except Exception:
+            pass
+        try:
+            data["posture"] = naoqi.posture.getPostureFamily()
+        except Exception:
+            pass
+        try:
+            pos = naoqi.navigation.getRobotPositionInMap()
+            data["position"] = {"x": pos[0], "y": pos[1], "theta": pos[2]}
+        except Exception:
+            pass
+        try:
+            data["battery"] = naoqi.battery.getBatteryCharge()
+        except Exception:
+            pass
+        return {"success": True, "data": data}
 
     # ─── POST ────────────────────────────────────────────────────
 
