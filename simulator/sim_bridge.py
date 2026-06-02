@@ -10,6 +10,7 @@ to broadcast state updates to the 3D web frontend.
 
 import json
 import time
+import datetime
 import base64
 import struct
 import threading
@@ -278,6 +279,40 @@ class AudioManager:
 
 
 # ─── Bridge Request Handler ──────────────────────────────────────
+# ─── AI brain system prompt ───────────────────────────────────────
+# Static persona + live grounding. The persona keeps Pepper in character and
+# bounded to what its body can do (HRI/social, light nav — not manipulation).
+# The live-context block is rebuilt every turn so the model never has to guess
+# the date or its own state (the cause of it inventing "October 24, 2025").
+ROBOT_PERSONA = (
+    "You are Pepper, a friendly humanoid social robot. You're talking with a person "
+    "face-to-face and your words are spoken aloud, so reply in 1-2 short, natural "
+    "sentences. Use plain speech only: no markdown, lists, emojis, code, or URLs. "
+    "You have a head you can turn, two arms for gestures, a wheeled base for light "
+    "movement, eye LEDs, and a speaker. You are built for conversation, greeting "
+    "people, and light navigation; you cannot pick up or manipulate objects, climb "
+    "stairs, or run, so if asked to, say so kindly. Be warm, curious, and concise. "
+    "Never invent names, facts, or dates. For the current time or your own state, "
+    "use the live context below and trust it over your training; if you don't know, say so."
+)
+
+
+def build_system_prompt(state, now):
+    """Persona + live grounding (date/time + robot state), rebuilt per turn.
+
+    `state` is a pepper.to_dict() snapshot; `now` is a datetime. Grounding stops
+    the model inventing the date and lets Pepper talk about its own state.
+    """
+    eyes = state.get("eye_color") or {}
+    ctx = [
+        "Now: " + now.strftime("%A, %d %B %Y, %H:%M"),
+        "Battery: {}%{}".format(state.get("battery", "?"), " (charging)" if state.get("charging") else ""),
+        "Posture: {}, {}".format(state.get("posture", "?"), "moving" if state.get("is_moving") else "standing still"),
+        "Eyes: rgb({},{},{})".format(eyes.get("r", 255), eyes.get("g", 255), eyes.get("b", 255)),
+    ]
+    return ROBOT_PERSONA + "\n\nLive context (trust this over your training):\n" + "\n".join("- " + c for c in ctx)
+
+
 class BridgeHandler(BaseHTTPRequestHandler):
     """
     HTTP handler matching EXACTLY the real Pepper bridge API.
@@ -813,7 +848,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
 
     def _query_llm(self, text):
         """Try the configured AI → mock fallback."""
-        system = "You are Pepper, a friendly humanoid robot. Reply in one or two sentences. Do not assume or invent the user's name unless they told you."
+        system = build_system_prompt(pepper.to_dict(), datetime.datetime.now())
         history = chat_history[:-1] if chat_history else []
 
         if brain.enabled:
