@@ -126,7 +126,22 @@ runner.set_callbacks(on_ready=lambda url, model: _rebuild_brain(),
 # leave _tts_process = None so the caller falls back to a time-based estimate
 # for is_speaking instead of waiting on a pipeline that exits instantly.
 PIPER_MODEL = os.path.expanduser(os.environ.get("SIM_PIPER_MODEL") or "~/models/piper/en_US-amy-medium.onnx")
-_PIPER_OK = bool(shutil.which("piper") and shutil.which("aplay") and os.path.exists(PIPER_MODEL))
+
+
+def _resolve_piper_bin():
+    """Find the piper binary: SIM_PIPER_BIN, else the venv running this process
+    (`pip install piper-tts` lands it next to the interpreter), else PATH."""
+    env_bin = os.environ.get("SIM_PIPER_BIN")
+    if env_bin and os.path.exists(os.path.expanduser(env_bin)):
+        return os.path.expanduser(env_bin)
+    venv_bin = os.path.join(os.path.dirname(sys.executable), "piper")
+    if os.path.exists(venv_bin):
+        return venv_bin
+    return shutil.which("piper")
+
+
+PIPER_BIN = _resolve_piper_bin()
+_PIPER_OK = bool(PIPER_BIN and shutil.which("aplay") and os.path.exists(PIPER_MODEL))
 _tts_process = None
 
 def speak_local(text: str):
@@ -137,9 +152,10 @@ def speak_local(text: str):
     _tts_process = None
     if not _PIPER_OK:
         return
+    piper_bin = PIPER_BIN or "piper"  # _PIPER_OK guarantees it's set; keeps the type checker happy
     try:
         _tts_process = subprocess.Popen(
-            f'echo {_shell_quote(text)} | piper --model {PIPER_MODEL} --output-raw 2>/dev/null | aplay -r 22050 -f S16_LE -q 2>/dev/null',
+            f'echo {_shell_quote(text)} | {_shell_quote(piper_bin)} --model {_shell_quote(PIPER_MODEL)} --output-raw 2>/dev/null | aplay -r 22050 -f S16_LE -q 2>/dev/null',
             shell=True,
         )
     except Exception as e:
