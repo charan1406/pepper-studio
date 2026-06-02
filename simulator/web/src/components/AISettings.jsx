@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { getAiConfig, setAiConfig, testAiConfig } from '../lib/bridge';
+import LocalRunnerPanel from './LocalRunnerPanel';
 
 const S = {
   btn: { padding: '4px 8px', background: '#3a3a3c', border: '1px solid #4a4a4c', borderRadius: '6px', color: '#e5e5e5', fontSize: '11px', cursor: 'pointer', fontFamily: 'inherit' },
@@ -56,30 +57,36 @@ export default function AISettings() {
       <button style={S.btn} onClick={onToggle}>AI</button>
       {open && (
         <div style={{ marginTop: '10px' }}>
-          <div style={{ ...S.grid2, marginBottom: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginBottom: '8px' }}>
             <button style={S.tab(source === 'cloud')} onClick={() => setSource('cloud')}>Cloud</button>
             <button style={S.tab(source === 'local')} onClick={() => setSource('local')}>Local server</button>
+            <button style={S.tab(source === 'gguf')} onClick={() => setSource('gguf')}>Local GGUF</button>
           </div>
-          <input style={S.input} value={cfg.base_url ?? ''} placeholder="base_url (e.g. http://localhost:8090/v1)"
-            onChange={(e) => setCfg({ ...cfg, base_url: e.target.value })} />
-          <input style={S.input} value={cfg.model ?? ''} placeholder="model"
-            onChange={(e) => setCfg({ ...cfg, model: e.target.value })} />
-          {source === 'cloud' && (
-            <input style={S.input} type="password" value={keyDraft}
-              placeholder={cfg.key_set ? 'key stored •••• (type to replace)' : 'api key'}
-              onChange={(e) => setKeyDraft(e.target.value)} />
+          {source === 'gguf' && <LocalRunnerPanel />}
+          {source !== 'gguf' && (
+            <>
+              <input style={S.input} value={cfg.base_url ?? ''} placeholder="base_url (e.g. http://localhost:8090/v1)"
+                onChange={(e) => setCfg({ ...cfg, base_url: e.target.value })} />
+              <input style={S.input} value={cfg.model ?? ''} placeholder="model"
+                onChange={(e) => setCfg({ ...cfg, model: e.target.value })} />
+              {source === 'cloud' && (
+                <input style={S.input} type="password" value={keyDraft}
+                  placeholder={cfg.key_set ? 'key stored •••• (type to replace)' : 'api key'}
+                  onChange={(e) => setKeyDraft(e.target.value)} />
+              )}
+              <div style={S.grid2}>
+                <button style={S.primary} onClick={onSave}>Save</button>
+                <button style={S.btn} onClick={onTest}>Test</button>
+              </div>
+              <div style={{ ...S.grid2, marginTop: '6px' }}>
+                <button style={S.btn} onClick={onReset}>Reset</button>
+                <div style={{ fontSize: '10px', color: cfg.enabled ? '#8aba8a' : '#666', alignSelf: 'center' }}>
+                  {cfg.enabled ? '● enabled' : '○ disabled'}
+                </div>
+              </div>
+              {status && <div style={S.note}>{status}</div>}
+            </>
           )}
-          <div style={S.grid2}>
-            <button style={S.primary} onClick={onSave}>Save</button>
-            <button style={S.btn} onClick={onTest}>Test</button>
-          </div>
-          <div style={{ ...S.grid2, marginTop: '6px' }}>
-            <button style={S.btn} onClick={onReset}>Reset</button>
-            <div style={{ fontSize: '10px', color: cfg.enabled ? '#8aba8a' : '#666', alignSelf: 'center' }}>
-              {cfg.enabled ? '● enabled' : '○ disabled'}
-            </div>
-          </div>
-          {status && <div style={S.note}>{status}</div>}
         </div>
       )}
     </div>
