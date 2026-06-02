@@ -7,7 +7,7 @@ import Dashboard from './components/Dashboard';
 import ChatPopup from './components/ChatPopup';
 import SearchResultPopup from './components/SearchResultPopup';
 import ControlPanel from './components/ControlPanel';
-import { usePepperWebSocket, usePepperStore, useBrowserTTS } from './hooks/usePepperState';
+import { usePepperConnection, usePepperStore, useBrowserTTS } from './hooks/usePepperState';
 
 function SpeechOverlay() {
   const isSpeaking = usePepperStore((s) => s.isSpeaking);
@@ -49,10 +49,16 @@ function SpeechOverlay() {
 }
 
 function StatusBar() {
-  const connected = usePepperStore((s) => s.connected);
+  const source = usePepperStore((s) => s.source);
   const battery = usePepperStore((s) => s.battery);
   const posture = usePepperStore((s) => s.posture);
   const isMoving = usePepperStore((s) => s.isMoving);
+
+  const badge = {
+    ws:           { label: '● LIVE (sim)',     color: '#8aba8a' },
+    poll:         { label: '● POLLING (real)', color: '#d4a847' },
+    disconnected: { label: '○ DISCONNECTED',   color: '#ba8a8a' },
+  }[source] || { label: '○ DISCONNECTED', color: '#ba8a8a' };
 
   return (
     <div style={{
@@ -72,9 +78,9 @@ function StatusBar() {
         background: '#2c2c2e',
         border: '1px solid #3a3a3c',
         borderRadius: '6px',
-        color: connected ? '#8aba8a' : '#ba8a8a',
+        color: badge.color,
       }}>
-        {connected ? '● CONNECTED' : '○ DISCONNECTED'}
+        {badge.label}
       </div>
 
       <div style={{
@@ -115,7 +121,7 @@ function LoadingFallback() {
 }
 
 export default function App() {
-  usePepperWebSocket();
+  usePepperConnection();
   useBrowserTTS();
 
   return (

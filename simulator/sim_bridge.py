@@ -360,6 +360,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
             "/navigate/map":   self._get_nav_map,
             "/posture/current": self._get_current_posture,
             "/joints/angles":  self._get_joint_angles,
+            "/state":          self._get_state,
             "/ai/config":      self._get_ai_config,
             "/ai/runner/status": self._get_runner_status,
             "/ai/runner/models": self._get_runner_models,
@@ -368,7 +369,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
         handler = routes.get(path)
         if handler:
             response = handler(params)
-            if path != "/ai/runner/status":  # frontend polls this ~1.5s; don't flood the API log
+            if path not in ("/ai/runner/status", "/state"):  # high-frequency polls — keep them out of the API log
                 pepper.log_api_call(path, "GET", response=response)
             self._send_json(response)
         else:
@@ -384,6 +385,11 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 "simulator": True
             }
         }
+
+    def _get_state(self, params):
+        """Full state snapshot — same shape the WS broadcasts. Polled by the
+        frontend when no WS is available (real robot)."""
+        return {"success": True, "data": pepper.to_dict()}
 
     def _get_battery(self, params):
         return {

@@ -4,6 +4,7 @@
   { "section": "Robot API", "method": "GET",  "path": "/posture/current", "body": null, "desc": "Current posture name." },
   { "section": "Robot API", "method": "GET",  "path": "/joints/angles?names=Body", "body": null, "desc": "Current joint angles (names=Body|Head|<joint>)." },
   { "section": "Robot API", "method": "GET",  "path": "/navigate/position", "body": null, "desc": "Robot pose (x, y, theta)." },
+  { "section": "Robot API", "method": "GET",  "path": "/state", "body": null, "desc": "Full robot state snapshot (position, joints, battery, posture, eyes, speech, nav)." },
   { "section": "Robot API", "method": "GET",  "path": "/animation/list", "body": null, "desc": "Available animation names." },
   { "section": "Robot API", "method": "POST", "path": "/move/velocity", "body": { "x": 0.5, "y": 0, "theta": 0 }, "desc": "Drive at a velocity (x fwd, y left, theta turn; -1..1)." },
   { "section": "Robot API", "method": "POST", "path": "/move/to", "body": { "x": 1.0, "y": 0, "theta": 0 }, "desc": "Move to a relative pose (meters, rad)." },
