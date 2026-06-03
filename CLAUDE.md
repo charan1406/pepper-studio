@@ -90,13 +90,14 @@ This repo is the **all-inclusive Pepper sandbox**: bridge + Studio UI + the AI b
 - **STUDIO UI** — React + Three.js + zustand (Vite). 3D viz + manual control + monitoring + API testing. Talks HTTP to a **bridge URL that is a user setting** (default `localhost:5001`). That setting is the deliberate hook for connecting to a real Pepper later — same controls become teleop.
 - **AI (optional, in-app)** — one OpenAI-compatible client (`simulator/llm.py`, vendored, stdlib-only) driven by `base_url` + `api_key` + `model`. **Three configuration sources resolve to that one `base_url`:** (1) cloud — key + base_url + model (OpenAI / Anthropic-compat / OpenRouter / Groq); (2) local — point at a server you started (llama-server / Ollama / LM Studio); (3) local — pick a GGUF and Studio spawns a `llama-server` **sidecar** for you (args-as-list, never `shell=True`), advanced flags exposed (`-ngl`, ctx-size, KV-cache type, `--mmproj`). Config is runtime-settable via `/ai/config` and persisted; the runner degrades gracefully — its failure never takes the app down. `"None"` = pure robot sim, mock fallback.
 
-**Key consequence:** "bridge to a real Pepper" is not a build artifact — it's a workflow: point the Studio at the real bridge's URL. Deploying `pepper/bridge.py` to the robot is documented in `DEPLOYMENT.md`.
+**Key consequence:** "bridge to a real Pepper" is not a build artifact — it's a workflow: point the Studio at the real bridge's URL. Deploying `pepper/bridge.py` to the robot and connecting Studio to it is documented in `CONNECT_REAL_PEPPER.md` (`DEPLOYMENT.md` is legacy pepper-ai — kept for reference only).
 
 ## Project Structure
 ```
 pepper-studio/
 ├── CLAUDE.md                    # This file
-├── DEPLOYMENT.md                # Deploy the real Py2.7 bridge to a physical Pepper
+├── CONNECT_REAL_PEPPER.md       # Connect Studio to a physical Pepper (deploy bridge.py + teleop, start→finish)
+├── DEPLOYMENT.md                # LEGACY (pepper-ai stack) — superseded by CONNECT_REAL_PEPPER.md
 ├── .gitignore                   # Ignores docs/ (specs/plans kept local), node_modules, venv
 ├── docs/                        # Local working docs — specs/plans (gitignored, NOT published)
 ├── pepper/
