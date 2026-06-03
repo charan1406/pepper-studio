@@ -8,7 +8,8 @@ export function Tabs({ defaultValue, tabs, className = '' }) {
         {tabs.map((t) => (
           <RTabs.Trigger key={t.value} value={t.value}
             className="px-3 py-2 text-sm text-muted data-[state=active]:text-text
-                       data-[state=active]:border-b-2 data-[state=active]:border-accent -mb-px">
+                       data-[state=active]:border-b-2 data-[state=active]:border-accent -mb-px
+                       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50">
             {t.label}
           </RTabs.Trigger>
         ))}

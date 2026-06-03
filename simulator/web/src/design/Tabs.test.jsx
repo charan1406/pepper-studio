@@ -15,5 +15,6 @@ describe('Tabs', () => {
     expect(screen.getByText('camera body')).toBeTruthy();
     await user.click(screen.getByRole('tab', { name: 'Monitor' }));
     expect(screen.getByText('monitor body')).toBeTruthy();
+    expect(screen.queryByText('camera body')).toBeNull();
   });
 });

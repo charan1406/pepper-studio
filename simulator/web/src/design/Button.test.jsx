@@ -21,4 +21,11 @@ describe('Button', () => {
     render(<Button variant="danger">Stop</Button>);
     expect(screen.getByRole('button', { name: 'Stop' }).className).toMatch(/text-danger/);
   });
+
+  it('falls back to primary styling for an unknown variant (no "undefined" class)', () => {
+    render(<Button variant="bogus">X</Button>);
+    const cls = screen.getByRole('button', { name: 'X' }).className;
+    expect(cls).not.toMatch(/undefined/);
+    expect(cls).toMatch(/bg-accent/);
+  });
 });

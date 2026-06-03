@@ -14,7 +14,7 @@ export function Button({ variant = 'primary', className = '', ...props }) {
         'inline-flex items-center justify-center gap-2 rounded-md px-3.5 py-2 text-sm font-medium ' +
         'transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 ' +
         'disabled:opacity-50 disabled:pointer-events-none ' +
-        VARIANTS[variant] + ' ' + className
+        (VARIANTS[variant] ?? VARIANTS.primary) + ' ' + className
       }
       {...props}
     />

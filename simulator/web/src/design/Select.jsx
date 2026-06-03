@@ -8,7 +8,7 @@ export function Select({ value, onValueChange, options, ariaLabel, className = '
       <RSelect.Trigger
         aria-label={ariaLabel}
         className={'inline-flex items-center justify-between gap-2 rounded-md bg-surface-2 border border-border ' +
-          'px-3 py-2 text-sm text-text focus:outline-none focus:border-accent/60 ' + className}
+          'px-3 py-2 text-sm text-text focus:outline-none focus:border-accent/60 focus:ring-[3px] focus:ring-accent-soft ' + className}
       >
         <RSelect.Value />
         <RSelect.Icon><ChevronDown size={14} className="text-accent" /></RSelect.Icon>
