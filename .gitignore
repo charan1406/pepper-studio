@@ -19,3 +19,6 @@ docs/
 # OS
 .DS_Store
 Thumbs.db
+
+# superpowers brainstorm/visual-companion artifacts
+.superpowers/
