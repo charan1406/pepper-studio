@@ -172,14 +172,28 @@ def _extract_mono(src, dst, channel=0):
     return framerate
 
 
+def _utf8(obj):
+    """Recursively convert unicode (from json.loads) to utf-8 byte str.
+
+    NAOqi's libqi rejects Python 2 unicode for its String args ("conversion
+    failure from Value to String"); qicli works because it passes byte strings.
+    Convert at the request boundary so every endpoint (speak, posture name,
+    animation name, joint names, tablet URL, ...) is safe."""
+    if isinstance(obj, unicode):
+        return obj.encode("utf-8")
+    if isinstance(obj, dict):
+        return dict((_utf8(k), _utf8(v)) for k, v in obj.items())
+    if isinstance(obj, list):
+        return [_utf8(x) for x in obj]
+    return obj
+
+
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     daemon_threads = True
 
 
 # TTS state for /speak/status. say() runs blocking on a worker thread (see
-# _post_speak) and flips this flag, because async post.say() returns a task id
-# but renders no audio in this bare-ALProxy bridge (no qi.Application to service
-# the async task).
+# _post_speak) and flips this flag.
 _speak_lock = threading.Lock()
 _speaking = False
 
@@ -203,7 +217,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
             return {}
         body = self.rfile.read(length)
         try:
-            return json.loads(body)
+            return _utf8(json.loads(body))
         except (ValueError, TypeError):
             return {"raw": base64.b64encode(body)}
 
@@ -429,10 +443,10 @@ class BridgeHandler(BaseHTTPRequestHandler):
                                     "it": "Italian", "es": "Spanish", "ja": "Japanese",
                                     "zh": "Chinese", "ar": "Arabic"}.get(lang, "English"))
 
-            # Blocking say() on a worker thread. Async post.say() returns a task
-            # id but plays no audio here (no qi.Application). The server is
-            # threaded, so /move/stop and other routes still respond while
-            # Pepper is talking.
+            # Run say() blocking on a worker thread so the HTTP call returns
+            # immediately and the threaded server keeps answering other routes
+            # (e.g. /move/stop) while Pepper talks. (We avoid async post.say() —
+            # it swallows errors on the async task.)
             def _say():
                 global _speaking
                 with _speak_lock:
