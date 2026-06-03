@@ -28,18 +28,21 @@ class EngagementState:
         self._last_event_ts = 0.0
 
     def consider(self, event, now: float) -> EngagementDecision:
-        self._last_event_ts = now
-
         if not is_salient(event):
             return EngagementDecision(False, "telemetry")
+        self._last_event_ts = now
 
         if event.type == PERSON_LEFT:
             if self.state in (ENGAGING, CONVERSING):
                 self.state = FAREWELL
                 return EngagementDecision(True, "farewell")
-            return EngagementDecision(False, "left while idle")
+            return EngagementDecision(False, "left while not engaged")
 
         if event.type in (FACE_RECOGNIZED, PERSON_DETECTED):
+            # NOTE (slice 2): PERSON_DETECTED with no face_id debounces on None,
+            # so distinct unknown visitors share one bucket. Fine for mock events;
+            # revisit when wiring real perception (key only FACE_RECOGNIZED, or use
+            # an ephemeral per-detection id).
             face_id = event.data.get("face_id")
             last = self._last_greeted.get(face_id)
             if last is not None and (now - last) < self.debounce_s:

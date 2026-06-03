@@ -46,3 +46,11 @@ def test_idle_timeout_resets():
     assert eng.maybe_timeout(now=40) is True
     assert eng.state == IDLE
     assert eng.partner is None
+
+
+def test_telemetry_does_not_reset_idle_timeout():
+    eng = EngagementState(idle_timeout_s=30)
+    eng.consider(PerceptionEvent(FACE_RECOGNIZED, {"face_id": "alice"}, ts=0), now=0)
+    # telemetry at t=20 must NOT push the idle clock forward
+    eng.consider(PerceptionEvent(SONAR, {"front": 0.6}, ts=20), now=20)
+    assert eng.maybe_timeout(now=35) is True  # 35s since last SALIENT event (t=0)
