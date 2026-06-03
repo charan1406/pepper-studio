@@ -80,3 +80,29 @@ def test_connection_error_is_handled():
     r = c.chat("hi")
     assert r.success is False
     assert r.error
+
+
+def test_chat_tools_parses_tool_calls(stub):
+    _StubHandler.response_body = {
+        "choices": [{"message": {
+            "content": "",
+            "tool_calls": [{
+                "id": "call_1", "type": "function",
+                "function": {"name": "say", "arguments": "{\"text\": \"hello\"}"},
+            }],
+        }}]
+    }
+    r = _client_for(stub).chat_tools(
+        messages=[{"role": "user", "content": "hi"}],
+        tools=[{"type": "function", "function": {"name": "say", "parameters": {}}}],
+    )
+    assert r.success is True
+    assert r.tool_calls == [{"name": "say", "args": {"text": "hello"}}]
+
+
+def test_chat_tools_no_calls_is_success_with_empty_list(stub):
+    _StubHandler.response_body = {"choices": [{"message": {"content": "just text"}}]}
+    r = _client_for(stub).chat_tools(messages=[{"role": "user", "content": "hi"}], tools=[])
+    assert r.success is True
+    assert r.tool_calls == []
+    assert r.content == "just text"

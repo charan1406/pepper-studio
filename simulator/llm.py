@@ -21,6 +21,7 @@ class LLMResult:
     content: str = ""
     error: str | None = None
     tok_per_sec: float = 0.0
+    tool_calls: list | None = None
 
 
 class SimLLMClient:
@@ -90,3 +91,51 @@ class SimLLMClient:
         completion_tokens = (data.get("usage") or {}).get("completion_tokens", 0)
         tok_per_sec = completion_tokens / elapsed if completion_tokens else 0.0
         return LLMResult(success=True, content=content, tok_per_sec=tok_per_sec)
+
+    def chat_tools(self, messages, tools) -> LLMResult:
+        """Tool-calling chat. Returns LLMResult with .tool_calls = [{'name','args'}]."""
+        if not self.enabled:
+            return LLMResult(success=False, error="AI disabled (no base_url)", tool_calls=[])
+
+        body = {"model": self.model, "messages": messages,
+                "temperature": 0.7, "stream": False}
+        if tools:
+            body["tools"] = tools
+            body["tool_choice"] = "auto"
+        payload = json.dumps(body).encode("utf-8")
+
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        req = urllib.request.Request(
+            f"{self.base_url}/chat/completions",
+            data=payload, headers=headers, method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+        except urllib.error.URLError as e:
+            return LLMResult(success=False, error=f"{type(e).__name__}: {e}", tool_calls=[])
+        except ValueError as e:
+            return LLMResult(success=False, error=f"Bad JSON: {e}", tool_calls=[])
+
+        try:
+            msg = data["choices"][0]["message"]
+        except (KeyError, IndexError, TypeError):
+            return LLMResult(success=False, error="Unexpected response schema", tool_calls=[])
+
+        calls = []
+        for tc in (msg.get("tool_calls") or []):
+            fn = tc.get("function") or {}
+            name = fn.get("name")
+            if not name:
+                continue
+            raw = fn.get("arguments") or "{}"
+            try:
+                args = json.loads(raw) if isinstance(raw, str) else dict(raw)
+            except ValueError:
+                args = {}
+            calls.append({"name": name, "args": args})
+
+        content = _THINK_RE.sub("", msg.get("content") or "").strip()
+        return LLMResult(success=True, content=content, tool_calls=calls)
