@@ -176,9 +176,12 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     daemon_threads = True
 
 
-# TTS task tracking for speak_and_wait
+# TTS state for /speak/status. say() runs blocking on a worker thread (see
+# _post_speak) and flips this flag, because async post.say() returns a task id
+# but renders no audio in this bare-ALProxy bridge (no qi.Application to service
+# the async task).
 _speak_lock = threading.Lock()
-_speak_task_id = None
+_speaking = False
 
 
 # ─── Bridge Handler ──────────────────────────────────────────────
@@ -322,16 +325,9 @@ class BridgeHandler(BaseHTTPRequestHandler):
             return self._error(str(e))
 
     def _get_speak_status(self, p):
-        global _speak_task_id
         try:
             with _speak_lock:
-                task_id = _speak_task_id
-            is_speaking = False
-            if task_id is not None:
-                is_speaking = naoqi.tts.isRunning(task_id)
-                if not is_speaking:
-                    with _speak_lock:
-                        _speak_task_id = None
+                is_speaking = _speaking
             return {"success": True, "data": {"is_speaking": is_speaking}}
         except Exception as e:
             return self._error(str(e))
@@ -426,26 +422,40 @@ class BridgeHandler(BaseHTTPRequestHandler):
             self._send_json(self._error("Unknown: %s" % path), 404)
 
     def _post_speak(self, body):
-        global _speak_task_id
         try:
             text = body.get("text", "")
             lang = body.get("language", "en")
             naoqi.tts.setLanguage({"en": "English", "de": "German", "fr": "French",
                                     "it": "Italian", "es": "Spanish", "ja": "Japanese",
                                     "zh": "Chinese", "ar": "Arabic"}.get(lang, "English"))
-            task_id = naoqi.tts.post.say(text)
-            with _speak_lock:
-                _speak_task_id = task_id
-            return {"success": True, "data": {"task_id": task_id}}
+
+            # Blocking say() on a worker thread. Async post.say() returns a task
+            # id but plays no audio here (no qi.Application). The server is
+            # threaded, so /move/stop and other routes still respond while
+            # Pepper is talking.
+            def _say():
+                global _speaking
+                with _speak_lock:
+                    _speaking = True
+                try:
+                    naoqi.tts.say(text)
+                finally:
+                    with _speak_lock:
+                        _speaking = False
+
+            worker = threading.Thread(target=_say)
+            worker.daemon = True
+            worker.start()
+            return {"success": True, "data": {}}
         except Exception as e:
             return self._error(str(e))
 
     def _post_speak_stop(self, body):
-        global _speak_task_id
+        global _speaking
         try:
             naoqi.tts.stopAll()
             with _speak_lock:
-                _speak_task_id = None
+                _speaking = False
             return {"success": True, "data": {}}
         except Exception as e:
             return self._error(str(e))
