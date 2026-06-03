@@ -122,10 +122,12 @@ class SimLLMClient:
         try:
             msg = data["choices"][0]["message"]
         except (KeyError, IndexError, TypeError):
-            return LLMResult(success=False, error="Unexpected response schema", tool_calls=[])
+            return LLMResult(success=False, error="Unexpected response schema (missing choices/message)", tool_calls=[])
 
         calls = []
         for tc in (msg.get("tool_calls") or []):
+            if not isinstance(tc, dict):
+                continue
             fn = tc.get("function") or {}
             name = fn.get("name")
             if not name:
@@ -138,4 +140,8 @@ class SimLLMClient:
             calls.append({"name": name, "args": args})
 
         content = _THINK_RE.sub("", msg.get("content") or "").strip()
+        if not calls and not content:
+            return LLMResult(success=False,
+                             error="Empty response (no tool_calls, no content)",
+                             tool_calls=[])
         return LLMResult(success=True, content=content, tool_calls=calls)

@@ -106,3 +106,41 @@ def test_chat_tools_no_calls_is_success_with_empty_list(stub):
     assert r.success is True
     assert r.tool_calls == []
     assert r.content == "just text"
+
+
+def test_chat_tools_disabled_when_no_base_url():
+    c = SimLLMClient(base_url="")
+    r = c.chat_tools(messages=[{"role": "user", "content": "hi"}], tools=[])
+    assert r.success is False
+    assert r.tool_calls == []
+
+
+def test_chat_tools_bad_arguments_json_defaults_empty(stub):
+    _StubHandler.response_body = {"choices": [{"message": {
+        "content": "",
+        "tool_calls": [{"function": {"name": "say", "arguments": "not-json"}}],
+    }}]}
+    r = _client_for(stub).chat_tools(messages=[{"role": "user", "content": "hi"}], tools=[])
+    assert r.tool_calls == [{"name": "say", "args": {}}]
+
+
+def test_chat_tools_parses_multiple_calls(stub):
+    _StubHandler.response_body = {"choices": [{"message": {
+        "content": "",
+        "tool_calls": [
+            {"function": {"name": "look_at", "arguments": "{\"yaw\": 0.5}"}},
+            {"function": {"name": "say", "arguments": "{\"text\": \"hi\"}"}},
+        ],
+    }}]}
+    r = _client_for(stub).chat_tools(messages=[{"role": "user", "content": "hi"}], tools=[])
+    assert r.tool_calls == [
+        {"name": "look_at", "args": {"yaw": 0.5}},
+        {"name": "say", "args": {"text": "hi"}},
+    ]
+
+
+def test_chat_tools_connection_error_is_handled():
+    c = SimLLMClient(base_url="http://127.0.0.1:1")
+    r = c.chat_tools(messages=[{"role": "user", "content": "hi"}], tools=[])
+    assert r.success is False
+    assert r.tool_calls == []
