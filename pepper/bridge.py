@@ -406,6 +406,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
             "/speak/stop":       self._post_speak_stop,
             "/audio/record":     self._post_audio_record,
             "/audio/play":       self._post_audio_play,
+            "/audio/stop":       self._post_audio_stop,
             "/move/velocity":    self._post_move_velocity,
             "/move/to":          self._post_move_to,
             "/move/stop":        self._post_move_stop,
@@ -527,6 +528,13 @@ class BridgeHandler(BaseHTTPRequestHandler):
                         pass
 
                 threading.Thread(target=_cleanup, args=(task_id, path), daemon=True).start()
+            return {"success": True, "data": {}}
+        except Exception as e:
+            return self._error(str(e))
+
+    def _post_audio_stop(self, body):
+        try:
+            naoqi.audio_player.stopAll()
             return {"success": True, "data": {}}
         except Exception as e:
             return self._error(str(e))

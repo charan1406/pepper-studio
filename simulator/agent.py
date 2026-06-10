@@ -9,6 +9,7 @@ it pick, and dispatches:
 Returns (spoken_text, kind) where kind is "action:<name>", "search", or "chat".
 """
 import actions
+import music
 import search
 
 
@@ -33,6 +34,8 @@ def _synthesize_search(brain, system, question, history, searxng_url, query):
 def respond(brain, client, system, question, history, searxng_url=""):
     """Run one brain turn with tools. Returns (spoken_text, kind)."""
     tools = list(actions.ACTION_TOOLS)
+    if music.HAS_YTDLP:
+        tools += music.MUSIC_TOOLS
     if searxng_url:
         tools.append(search.WEB_SEARCH_TOOL)
 
@@ -56,6 +59,11 @@ def respond(brain, client, system, question, history, searxng_url=""):
             confirm = actions.execute(client, name, args)
             # prefer the model's own phrasing if it spoke alongside the tool call
             return (routed.content or confirm or "Done."), f"action:{name}"
+
+        if name in music.MUSIC_NAMES:
+            if name == "play_song":
+                return music.play_song(client, args.get("query") or question), "music"
+            return music.stop_audio(client), "music"
 
     # no tool call — direct answer
     if routed.success and routed.content:

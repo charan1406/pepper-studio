@@ -630,6 +630,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
             "/speak/stop":         self._post_speak_stop,
             "/audio/record":       self._post_audio_record,
             "/audio/play":         self._post_audio_play,
+            "/audio/stop":         self._post_audio_stop,
             "/move/velocity":      self._post_move_velocity,
             "/move/to":            self._post_move_to,
             "/move/stop":          self._post_move_stop,
@@ -702,6 +703,10 @@ class BridgeHandler(BaseHTTPRequestHandler):
 
     def _post_audio_play(self, body):
         print(f"[AUDIO PLAY] Playing audio on Pepper speakers")
+        return {"success": True, "data": {}}
+
+    def _post_audio_stop(self, body):
+        print("[AUDIO STOP] Stopping audio playback")
         return {"success": True, "data": {}}
 
     def _post_move_velocity(self, body):

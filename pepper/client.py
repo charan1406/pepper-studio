@@ -125,6 +125,10 @@ class PepperClient:
         })
         return self._ok(resp)
 
+    def stop_audio(self) -> bool:
+        """Stop any audio currently playing through Pepper's speakers."""
+        return self._ok(self._post("/audio/stop", {}))
+
     def record_audio(self, seconds: float = 5) -> Optional[str]:
         """Record audio from Pepper's mic. Returns base64 WAV."""
         resp = self._post("/audio/record", {"seconds": seconds})
