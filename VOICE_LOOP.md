@@ -37,6 +37,7 @@ llama-server**): casual chat is one fast call; real intents trigger a tool.
 | Move | `move` / `turn` (clamped ≤0.5 m / ≤90°) | "come closer", "turn left" |
 | Gesture | `wave` | "wave hello" |
 | Music | `play_song` / `stop_audio` (yt-dlp) | "play some jazz", "stop the music" |
+| Game | `play_rps` (rock-paper-scissors) | "let's play rock paper scissors" |
 | Any language | STT auto-detect → reply + voice match | speak German → German reply |
 
 ---

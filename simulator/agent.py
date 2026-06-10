@@ -9,6 +9,7 @@ it pick, and dispatches:
 Returns (spoken_text, kind) where kind is "action:<name>", "search", or "chat".
 """
 import actions
+import games
 import music
 import search
 
@@ -34,6 +35,7 @@ def _synthesize_search(brain, system, question, history, searxng_url, query):
 def respond(brain, client, system, question, history, searxng_url=""):
     """Run one brain turn with tools. Returns (spoken_text, kind)."""
     tools = list(actions.ACTION_TOOLS)
+    tools.append(games.RPS_TOOL)
     if music.HAS_YTDLP:
         tools += music.MUSIC_TOOLS
     if searxng_url:
@@ -64,6 +66,9 @@ def respond(brain, client, system, question, history, searxng_url=""):
             if name == "play_song":
                 return music.play_song(client, args.get("query") or question), "music"
             return music.stop_audio(client), "music"
+
+        if name in games.RPS_NAMES:
+            return games.play_rps(client), "game"
 
     # no tool call — direct answer
     if routed.success and routed.content:
