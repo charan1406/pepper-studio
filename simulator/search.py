@@ -86,14 +86,15 @@ def answer(brain, system, question, history, searxng_url):
         if routed.success and routed.tool_calls:
             query = routed.tool_calls[0]["args"].get("query") or question
             print(f"[search] query: {query!r}")
-            results = search(query, searxng_url)
+            results = search(query, searxng_url, n=8)
             aug_system = (
                 system
                 + "\n\nWeb search results for the user's question:\n"
                 + format_results(results)
                 + "\n\nAnswer the user in one or two short spoken sentences using "
-                  "these results. If they don't contain the answer, say you "
-                  "couldn't find it."
+                  "these results — pull out the specific fact they asked for "
+                  "(temperature, name, score, price, date, etc.) if it appears. "
+                  "Only say you couldn't find it if the results truly don't contain it."
             )
             final = brain.chat(question, system=aug_system, history=history)
             if final.success and final.content:
