@@ -25,14 +25,31 @@ bridge; only that path carries audio.
 
 ---
 
+## What Pepper can do (tool-routed)
+
+The brain decides per turn (`agent.py` + `chat_tools`, **needs `--jinja` on
+llama-server**): casual chat is one fast call; real intents trigger a tool.
+
+| Intent | Tool | Example |
+|--------|------|---------|
+| Chat | — (direct) | "who are you?" |
+| Live facts | `web_search` → SearXNG | "weather in Berlin?", "who's the chancellor?" |
+| Move | `move` / `turn` (clamped ≤0.5 m / ≤90°) | "come closer", "turn left" |
+| Gesture | `wave` | "wave hello" |
+| Music | `play_song` / `stop_audio` (yt-dlp) | "play some jazz", "stop the music" |
+| Any language | STT auto-detect → reply + voice match | speak German → German reply |
+
+---
+
 ## Prerequisites
 
 | Piece | What | Where it runs |
 |-------|------|---------------|
 | **Bridge** | `simulator/sim_bridge.py` (sim) or `pepper/bridge.py` (real robot) | sim: your box · real: on Pepper |
 | **STT** | `faster-whisper` in a venv | same box as `voice_loop.py` |
-| **LLM** | `llama-server` (llama.cpp) + a **non-reasoning instruct** GGUF | same box / LAN |
+| **LLM** | `llama-server` (llama.cpp) + a **non-reasoning instruct** GGUF, run with `--jinja` | same box / LAN |
 | **Search** *(optional)* | SearXNG container with JSON enabled | same box / LAN |
+| **Music** *(optional)* | `yt-dlp` + `ffmpeg` on PATH | same box as `voice_loop.py` |
 
 > **Model choice is the #1 latency lever — pick an _instruct_ model, never a
 > _reasoning/thinking_ one.** Reasoning models (e.g. the `Qwen3.5` GGUFs) emit
@@ -143,6 +160,7 @@ transcript → `[reply]` and Pepper speaks. Eyes go blue (listening) → cyan
 | `SIM_AI_MODEL` | model name (`local` for llama-server) |
 | `SIM_AI_TIMEOUT` | LLM request timeout, seconds (default 120) |
 | `SIM_SEARXNG_URL` | SearXNG base URL (blank = search off) |
+| `SIM_STT_LANGUAGE` | force STT language e.g. `de` (blank = auto-detect per utterance) |
 
 ---
 
