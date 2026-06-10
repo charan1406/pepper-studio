@@ -24,7 +24,7 @@ import sys
 sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import search
+import agent
 import stt
 from llm import SimLLMClient
 from pepper.client import PepperClient
@@ -73,10 +73,9 @@ def one_turn(client, brain, history, seconds, model_size):
     print(f"[heard ] ({lang}) {heard}")
 
     if brain.enabled:
-        reply, used = search.answer(brain, PEPPER_SYSTEM, heard, history,
+        reply, kind = agent.respond(brain, client, PEPPER_SYSTEM, heard, history,
                                     os.environ.get("SIM_SEARXNG_URL", ""))
-        if used:
-            print("[search] answered using web results")
+        print(f"[{kind}]")
     else:
         reply = "I heard you, but I have no AI brain configured yet."
     print(f"[reply ] {reply}")
