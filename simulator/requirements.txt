@@ -8,6 +8,12 @@ websockets>=12.0
 # numpy>=1.24.0
 # pyaudio>=0.2.13
 
+# Optional local speech-to-text (faster-whisper). Lets the voice loop
+# (voice_loop.py) transcribe Pepper's mic audio so the AI brain can hear you.
+# Without it, voice_loop.py runs but has no input. Model weights auto-download
+# on first use (small ~460MB). Install with: pip install faster-whisper
+# faster-whisper>=1.2.0
+
 # Optional natural voice (Piper neural TTS, run as a sidecar process). Without
 # these, speech falls back to the browser's built-in TTS. Also needs the `aplay`
 # binary (alsa-utils) and a voice .onnx model; point at it with SIM_PIPER_MODEL.
