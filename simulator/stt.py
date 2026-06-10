@@ -34,19 +34,21 @@ def _get_model(size="small", device="cpu", compute_type="int8"):
     return _model
 
 
-def transcribe(wav_bytes, size="small", language="en",
+def transcribe(wav_bytes, size="small", language=None,
                device="cpu", compute_type="int8"):
-    """Transcribe WAV bytes to text. Returns "" on any failure (no STT, empty
-    audio, decode error) so the caller can treat it as "heard nothing"."""
+    """Transcribe WAV bytes. Returns (text, lang) where lang is the detected
+    ISO code ('en', 'de', ...). language=None auto-detects per utterance so the
+    speaker can switch languages freely. Returns ("", "") on any failure."""
     if not wav_bytes:
-        return ""
+        return "", ""
     model = _get_model(size, device, compute_type)
     if model is None:
-        return ""
+        return "", ""
     try:
-        segments, _ = model.transcribe(
+        segments, info = model.transcribe(
             io.BytesIO(wav_bytes), beam_size=1, language=language)
-        return " ".join(s.text.strip() for s in segments).strip()
+        text = " ".join(s.text.strip() for s in segments).strip()
+        return text, (info.language or "")
     except Exception as e:
         print(f"[STT] transcribe failed: {e}")
-        return ""
+        return "", ""

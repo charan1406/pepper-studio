@@ -36,7 +36,8 @@ PEPPER_SYSTEM = (
     "markdown, no lists, no emoji, no stage directions or asterisks. Be warm, curious, and "
     "concise, like a friendly person rather than an assistant reading a manual. If you are "
     "asked something you cannot know on your own, use web search if it is available, "
-    "otherwise say so briefly in one sentence instead of guessing."
+    "otherwise say so briefly in one sentence instead of guessing. "
+    "Always reply in the same language the person spoke to you."
 )
 
 
@@ -61,12 +62,15 @@ def one_turn(client, brain, history, seconds, model_size):
     wav = base64.b64decode(b64)
 
     client.eyes_thinking()
-    heard = stt.transcribe(wav, size=model_size)
+    # SIM_STT_LANGUAGE forces a language (e.g. "de") for reliability in a known-
+    # language session; unset = auto-detect per utterance (free language switching).
+    forced_lang = os.environ.get("SIM_STT_LANGUAGE") or None
+    heard, lang = stt.transcribe(wav, size=model_size, language=forced_lang)
     if not heard:
         print("[loop] heard nothing (silence or STT unavailable)")
         client.eyes_listening()
         return
-    print(f"[heard ] {heard}")
+    print(f"[heard ] ({lang}) {heard}")
 
     if brain.enabled:
         reply, used = search.answer(brain, PEPPER_SYSTEM, heard, history,
@@ -77,8 +81,11 @@ def one_turn(client, brain, history, seconds, model_size):
         reply = "I heard you, but I have no AI brain configured yet."
     print(f"[reply ] {reply}")
 
+    # Pepper only has English/German/Chinese voices installed (probe); other
+    # detected languages fall back to the English voice to avoid a setLanguage throw.
+    speak_lang = lang if lang in ("en", "de", "zh") else "en"
     client.eyes_speaking()
-    client.speak(reply)
+    client.speak(reply, language=speak_lang)
 
     history.append({"role": "user", "content": heard})
     history.append({"role": "assistant", "content": reply})
