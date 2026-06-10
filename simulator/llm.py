@@ -119,6 +119,8 @@ class SimLLMClient:
                 data = json.loads(resp.read().decode("utf-8"))
         except urllib.error.URLError as e:
             return LLMResult(success=False, error=f"{type(e).__name__}: {e}", tool_calls=[])
+        except (TimeoutError, OSError) as e:
+            return LLMResult(success=False, error=f"{type(e).__name__}: {e}", tool_calls=[])
         except ValueError as e:
             return LLMResult(success=False, error=f"Bad JSON: {e}", tool_calls=[])
 

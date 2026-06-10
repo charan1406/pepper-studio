@@ -24,6 +24,7 @@ import sys
 sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import search
 import stt
 from llm import SimLLMClient
 from pepper.client import PepperClient
@@ -68,11 +69,10 @@ def one_turn(client, brain, history, seconds, model_size):
     print(f"[heard ] {heard}")
 
     if brain.enabled:
-        resp = brain.chat(heard, system=PEPPER_SYSTEM, history=history)
-        reply = resp.content if resp.success else None
-        if not reply:
-            print(f"[loop] brain failed: {resp.error}")
-            reply = "Sorry, my brain is not connected right now."
+        reply, used = search.answer(brain, PEPPER_SYSTEM, heard, history,
+                                    os.environ.get("SIM_SEARXNG_URL", ""))
+        if used:
+            print("[search] answered using web results")
     else:
         reply = "I heard you, but I have no AI brain configured yet."
     print(f"[reply ] {reply}")
@@ -103,6 +103,8 @@ def main():
     print(f"bridge : {args.bridge}")
     print(f"brain  : {'on — ' + brain.base_url if brain.enabled else 'off (set SIM_AI_BASE_URL)'}")
     print(f"stt    : {'faster-whisper ' + args.model if stt.HAS_WHISPER else 'UNAVAILABLE (pip install faster-whisper)'}")
+    _searx = os.environ.get("SIM_SEARXNG_URL", "")
+    print(f"search : {'on — ' + _searx if _searx else 'off (set SIM_SEARXNG_URL)'}")
 
     history: list = []
     try:
