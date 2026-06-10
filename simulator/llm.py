@@ -74,6 +74,9 @@ class SimLLMClient:
                 data = json.loads(resp.read().decode("utf-8"))
         except urllib.error.URLError as e:
             return LLMResult(success=False, error=f"{type(e).__name__}: {e}")
+        except (TimeoutError, OSError) as e:
+            # socket read-timeout is a raw TimeoutError, not wrapped in URLError
+            return LLMResult(success=False, error=f"{type(e).__name__}: {e}")
         except ValueError as e:
             return LLMResult(success=False, error=f"Bad JSON: {e}")
 

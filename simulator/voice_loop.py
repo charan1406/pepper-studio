@@ -41,6 +41,8 @@ def build_brain():
         base_url=os.environ.get("SIM_AI_BASE_URL", ""),
         api_key=os.environ.get("SIM_AI_API_KEY", ""),
         model=os.environ.get("SIM_AI_MODEL", "local"),
+        # reasoning models can generate for a while; give them room before timing out
+        timeout=int(os.environ.get("SIM_AI_TIMEOUT", "120")),
     )
 
 
@@ -104,7 +106,11 @@ def main():
             print("\nLoop mode. Ctrl-C to stop.")
             while True:
                 input("press Enter to talk to Pepper... ")
-                one_turn(client, brain, history, args.seconds, args.model)
+                try:
+                    one_turn(client, brain, history, args.seconds, args.model)
+                except Exception as e:
+                    # one bad turn (timeout, bridge blip) must not kill the session
+                    print(f"[loop] turn failed: {type(e).__name__}: {e} — continuing")
         else:
             input("\npress Enter to talk to Pepper... ")
             one_turn(client, brain, history, args.seconds, args.model)
