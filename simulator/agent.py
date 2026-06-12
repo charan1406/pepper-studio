@@ -49,26 +49,40 @@ def respond(brain, client, system, question, history, searxng_url=""):
     routed = brain.chat_tools(messages, tools)
 
     if routed.success and routed.tool_calls:
-        call = routed.tool_calls[0]
-        name, args = call["name"], call["args"]
+        # Run EVERY action the model asked for, in order — it often decomposes
+        # "turn and wave" into two calls. A search/music/game call is a full
+        # conversational interaction, so honor the FIRST such "terminal" tool and
+        # let it own the spoken reply; robot actions are physical side effects.
+        confirmations = []
+        action_names = []
+        terminal = None
+        for call in routed.tool_calls:
+            name, args = call["name"], call["args"]
+            if name in actions.ACTION_NAMES:
+                confirm = actions.execute(client, name, args)
+                if confirm:
+                    confirmations.append(confirm)
+                action_names.append(name)
+            elif terminal is None:
+                terminal = (name, args)
 
-        if name == "web_search" and searxng_url:
-            text = _synthesize_search(brain, system, question, history,
-                                      searxng_url, args.get("query") or question)
-            return text, "search"
+        if terminal is not None:
+            name, args = terminal
+            if name == "web_search" and searxng_url:
+                text = _synthesize_search(brain, system, question, history,
+                                          searxng_url, args.get("query") or question)
+                return text, "search"
+            if name in music.MUSIC_NAMES:
+                if name == "play_song":
+                    return music.play_song(client, args.get("query") or question), "music"
+                return music.stop_audio(client), "music"
+            if name in games.RPS_NAMES:
+                return games.play_rps(client), "game"
 
-        if name in actions.ACTION_NAMES:
-            confirm = actions.execute(client, name, args)
-            # prefer the model's own phrasing if it spoke alongside the tool call
-            return (routed.content or confirm or "Done."), f"action:{name}"
-
-        if name in music.MUSIC_NAMES:
-            if name == "play_song":
-                return music.play_song(client, args.get("query") or question), "music"
-            return music.stop_audio(client), "music"
-
-        if name in games.RPS_NAMES:
-            return games.play_rps(client), "game"
+        if action_names:
+            # prefer the model's own phrasing if it spoke alongside the calls
+            reply = routed.content or " ".join(confirmations) or "Done."
+            return reply, "action:" + "+".join(action_names)
 
     # no tool call — direct answer
     if routed.success and routed.content:
