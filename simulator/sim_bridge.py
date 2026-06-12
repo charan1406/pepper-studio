@@ -415,12 +415,31 @@ class BridgeHandler(BaseHTTPRequestHandler):
     Every endpoint returns the same JSON structure as the real bridge.
     """
 
+    # Only localhost origins get CORS. Prod serves the UI same-origin (no CORS
+    # needed); the dev Vite server (:5002) is cross-origin and must be allowed.
+    # Reflecting only local origins blocks any remote website the user visits
+    # from driving the bridge — the Origin header is browser-set, unspoofable
+    # by page JS — while curl/Python tests (no Origin) are unaffected.
+    _CORS_HOSTS = ("localhost", "127.0.0.1", "::1")
+
+    def _send_cors(self):
+        origin = self.headers.get("Origin")
+        if not origin:
+            return
+        try:
+            host = urlparse(origin).hostname
+        except ValueError:
+            return
+        if host in self._CORS_HOSTS:
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
+            self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+            self.send_header("Access-Control-Allow-Headers", "Content-Type")
+
     def _send_json(self, data, status=200):
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self._send_cors()
         self.end_headers()
         self.wfile.write(json.dumps(data).encode("utf-8"))
 
@@ -456,7 +475,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", ctype or "application/octet-stream")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", cache)
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self._send_cors()
         self.end_headers()
         self.wfile.write(body)
 
@@ -472,9 +491,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
 
     def do_OPTIONS(self):
         self.send_response(204)
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self._send_cors()
         self.end_headers()
 
     def log_message(self, format, *args):
@@ -1003,7 +1020,7 @@ async def start_ws_server():
     """Start the WebSocket server."""
     if not HAS_WEBSOCKETS:
         return
-    server = await websockets.serve(ws_handler, "0.0.0.0", SIM_WS_PORT)
+    server = await websockets.serve(ws_handler, "127.0.0.1", SIM_WS_PORT)
     print(f"[WS] State broadcast on ws://localhost:{SIM_WS_PORT}")
     await server.wait_closed()
 
@@ -1057,7 +1074,7 @@ def main():
         print("[TTS] Piper not available — browser TTS")
 
     # Start HTTP bridge server
-    server = HTTPServer(("0.0.0.0", SIM_BRIDGE_PORT), BridgeHandler)
+    server = HTTPServer(("127.0.0.1", SIM_BRIDGE_PORT), BridgeHandler)
     print(f"[BRIDGE] Listening on http://localhost:{SIM_BRIDGE_PORT}")
     print(f"[INFO] Webcam: {'active' if webcam.cap else 'placeholder mode'}")
     print(f"[INFO] Mic: {'active' if audio_manager.stream else 'silent mode'}")
