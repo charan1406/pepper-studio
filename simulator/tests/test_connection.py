@@ -64,7 +64,7 @@ class FakeSSH:
     def open_sftp(self):
         return FakeSFTP(self.store)
 
-    def exec_command(self, cmd):
+    def exec_command(self, cmd, **kwargs):
         self.commands.append(cmd)
         stdout = io.StringIO("[INIT] ok\n[BRIDGE] Listening on port 5001\n"
                              if "bridge.py" in cmd else "")

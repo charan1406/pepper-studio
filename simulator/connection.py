@@ -10,6 +10,7 @@ the flow is unit-testable with fakes — no paramiko and no robot required.
 """
 import json
 import os
+import shlex
 import threading
 import time
 import urllib.request
@@ -171,8 +172,13 @@ def _do_connect(host, user, password, ssh_port, naoqi_port, bridge_port,
         time.sleep(0.5)
         cmd = "python bridge.py --ip 127.0.0.1 --port %d --bridge-port %d" % (
             naoqi_port, bridge_port)
+        # Run via a login+interactive shell so the robot's NAOqi environment
+        # (the PYTHONPATH set in /etc/profile or ~/.bashrc) is loaded — a bare
+        # exec_command uses a non-login non-interactive shell that can't import
+        # naoqi. get_pty so -i behaves and the process is HUP'd if the channel drops.
+        wrapped = "bash -ilc %s" % shlex.quote(cmd)
         _log("[init] starting: %s" % cmd)
-        _stdin, stdout, _stderr = ssh.exec_command(cmd)
+        _stdin, stdout, _stderr = ssh.exec_command(wrapped, get_pty=True)
         _client = ssh
         threading.Thread(target=_pump, args=(stdout,), daemon=True).start()
 
