@@ -32,6 +32,7 @@ import ai_config
 import runner
 import connection
 import voice_service
+import services
 
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
@@ -523,12 +524,13 @@ class BridgeHandler(BaseHTTPRequestHandler):
             "/ai/runner/models": self._get_runner_models,
             "/robot/status":   self._get_robot_status,
             "/voice/status":   self._get_voice_status,
+            "/services/status": self._get_services_status,
         }
 
         handler = routes.get(path)
         if handler:
             response = handler(params)
-            if path not in ("/ai/runner/status", "/robot/status", "/voice/status"):  # UI polls these ~1.5s; don't flood the API log
+            if path not in ("/ai/runner/status", "/robot/status", "/voice/status", "/services/status"):  # UI polls these ~1.5s; don't flood the API log
                 pepper.log_api_call(path, "GET", response=response)
             self._send_json(response)
         else:
@@ -683,6 +685,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
             "/robot/disconnect":   self._post_robot_disconnect,
             "/voice/talk":         self._post_voice_talk,
             "/voice/clear":        self._post_voice_clear,
+            "/services/searxng/start": self._post_searxng_start,
+            "/services/searxng/stop":  self._post_searxng_stop,
         }
 
         handler = routes.get(path)
@@ -1016,6 +1020,17 @@ class BridgeHandler(BaseHTTPRequestHandler):
     def _post_voice_clear(self, body):
         voice_service.clear()
         return {"success": True, "data": voice_service.status()}
+
+    # ── External services (docker-managed; SearXNG for web search) ──
+
+    def _get_services_status(self, params):
+        return {"success": True, "data": {"searxng": services.status()}}
+
+    def _post_searxng_start(self, body):
+        return {"success": True, "data": services.start()}
+
+    def _post_searxng_stop(self, body):
+        return {"success": True, "data": services.stop()}
 
     def _query_llm(self, text):
         """Try the configured AI → mock fallback."""
