@@ -166,6 +166,41 @@ def test_connect_fires_on_connected_callback(monkeypatch):
 
 # ── disconnect ─────────────────────────────────────────────────────
 
+def test_install_pubkey_handles_bytes_authorized_keys():
+    # paramiko SFTP read() returns bytes on py3; installing must not blow up when
+    # authorized_keys already exists (the second-connect TypeError regression).
+    class _SFTP:
+        def __init__(self):
+            self.appended = []
+
+        def mkdir(self, p, mode=0o700):
+            raise IOError("exists")
+
+        def open(self, path, mode="r"):
+            if "r" in mode:
+                return io.BytesIO(b"ssh-rsa OTHERKEY someone\n")  # bytes, like paramiko
+            buf = io.StringIO()
+            self.appended.append(buf)
+            return buf
+
+        def chmod(self, p, m):
+            pass
+
+        def close(self):
+            pass
+
+    class _SSH:
+        def __init__(self):
+            self.sftp = _SFTP()
+
+        def open_sftp(self):
+            return self.sftp
+
+    ssh = _SSH()
+    connection._install_pubkey(ssh, "ssh-rsa MINE pepper-studio")  # must not raise
+    assert ssh.sftp.appended  # our key was appended alongside the existing one
+
+
 def test_connect_without_paramiko_gives_clear_error(monkeypatch):
     monkeypatch.setattr(connection, "HAS_PARAMIKO", False)
     connection.connect("1.2.3.4", "nao")  # no ssh_factory -> would use real paramiko

@@ -115,7 +115,8 @@ def _install_pubkey(ssh, pub_line):
         existing = ""
         try:
             with sftp.open(".ssh/authorized_keys", "r") as f:
-                existing = f.read()
+                data = f.read()
+            existing = data.decode("utf-8", "replace") if isinstance(data, bytes) else data
         except Exception:
             existing = ""
         if pub_line not in existing:
@@ -132,6 +133,8 @@ def _install_pubkey(ssh, pub_line):
 def _pump(stdout):
     try:
         for line in stdout:
+            if isinstance(line, bytes):  # paramiko ChannelFile yields bytes on py3
+                line = line.decode("utf-8", "replace")
             _log(line)
     except Exception:
         pass
