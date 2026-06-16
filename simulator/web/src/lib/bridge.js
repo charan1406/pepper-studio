@@ -37,6 +37,26 @@ async function get(path) {
   return res.json();
 }
 
+// Studio-side endpoints (AI config, llama runner, robot connection) live on the
+// Studio backend, NOT the bridge — they must hit the app's own origin, never the
+// bridge URL (which after connecting points at the robot, which has none of
+// these). Keep them separate from the bridge-contract helpers above.
+async function studioPost(path, body = {}) {
+  const res = await fetch(`${window.location.origin}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`POST ${path} → HTTP ${res.status}`);
+  return res.json();
+}
+
+async function studioGet(path) {
+  const res = await fetch(`${window.location.origin}${path}`);
+  if (!res.ok) throw new Error(`GET ${path} → HTTP ${res.status}`);
+  return res.json();
+}
+
 export const moveVelocity = (x, y, theta) => post('/move/velocity', { x, y, theta });
 export const stopMove = () => post('/move/stop', {});
 export const setPosture = (posture, speed = 0.5) => post('/posture/set', { posture, speed });
@@ -49,15 +69,20 @@ export const setHead = (yaw, pitch, speed = 0.2) => post('/head/set', { yaw, pit
 export const navigateTo = (x, y, theta = 0) => post('/navigate/goto', { x, y, theta });
 
 // AI provider config (runtime dial). api_key is never returned by the bridge.
-export const getAiConfig = () => get('/ai/config');
-export const setAiConfig = (cfg) => post('/ai/config', cfg);
-export const testAiConfig = (cfg) => post('/ai/test', cfg);
+export const getAiConfig = () => studioGet('/ai/config');
+export const setAiConfig = (cfg) => studioPost('/ai/config', cfg);
+export const testAiConfig = (cfg) => studioPost('/ai/test', cfg);
 
 // Local model runner (llama-server sidecar).
-export const getRunnerStatus = () => get('/ai/runner/status');
-export const listModels = (dir) => get(`/ai/runner/models?dir=${encodeURIComponent(dir || '')}`);
-export const startRunner = (body) => post('/ai/runner/start', body);
-export const stopRunner = () => post('/ai/runner/stop', {});
+export const getRunnerStatus = () => studioGet('/ai/runner/status');
+export const listModels = (dir) => studioGet(`/ai/runner/models?dir=${encodeURIComponent(dir || '')}`);
+export const startRunner = (body) => studioPost('/ai/runner/start', body);
+export const stopRunner = () => studioPost('/ai/runner/stop', {});
+
+// Robot connection (studio-side; deploys + runs bridge.py on a real Pepper).
+export const getRobotStatus = () => studioGet('/robot/status');
+export const connectRobot = (body) => studioPost('/robot/connect', body);
+export const disconnectRobot = () => studioPost('/robot/disconnect', {});
 
 // Posture + head-limit constants (from sim_state.py) for the UI.
 export const POSTURES = ['Stand', 'StandInit', 'StandZero', 'Crouch', 'Sit', 'SitRelax'];

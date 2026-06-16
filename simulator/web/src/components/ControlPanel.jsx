@@ -5,6 +5,7 @@ import {
   getBridgeUrl, setBridgeUrl, POSTURES, HEAD_LIMITS,
 } from '../lib/bridge';
 import AISettings from './AISettings';
+import RobotConnection from './RobotConnection';
 
 const C = {
   panel: {
@@ -109,8 +110,10 @@ export default function ControlPanel() {
               <button style={C.btn} onClick={() => { setBridgeUrl(''); setUrlDraft(getBridgeUrl()); }}>Reset</button>
             </div>
             <div style={{ fontSize: '10px', color: '#666', marginTop: '6px' }}>
-              Point at a real Pepper's bridge to teleop. Reload after changing.
+              Or connect a real Pepper below — it sets this URL automatically.
             </div>
+            <div style={{ ...C.sectionTitle, marginTop: '12px' }}>Robot Connection</div>
+            <RobotConnection />
           </div>
         )}
         <AISettings />
