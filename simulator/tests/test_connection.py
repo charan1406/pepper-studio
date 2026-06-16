@@ -166,6 +166,14 @@ def test_connect_fires_on_connected_callback(monkeypatch):
 
 # ── disconnect ─────────────────────────────────────────────────────
 
+def test_connect_without_paramiko_gives_clear_error(monkeypatch):
+    monkeypatch.setattr(connection, "HAS_PARAMIKO", False)
+    connection.connect("1.2.3.4", "nao")  # no ssh_factory -> would use real paramiko
+    s = connection.status()
+    assert s["state"] == "error"
+    assert "paramiko" in s["error"].lower()
+
+
 def test_disconnect_kills_and_closes():
     ssh = FakeSSH()
     connection._client = ssh

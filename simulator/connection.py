@@ -202,6 +202,10 @@ def _do_connect(host, user, password, ssh_port, naoqi_port, bridge_port,
 def connect(host, user, password=None, ssh_port=22, naoqi_port=9559,
             bridge_port=5001, ssh_factory=None, http_get=None):
     """Start the connect flow on a worker thread (returns immediately)."""
+    if ssh_factory is None and not HAS_PARAMIKO:
+        _set(state="error", host=host, user=user,
+             error="paramiko not installed on the Studio host — run: pip install paramiko")
+        return
     ssh_factory = ssh_factory or _default_ssh_factory
     http_get = http_get or _default_http_get
     threading.Thread(
