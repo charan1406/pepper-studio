@@ -30,14 +30,17 @@ from llm import SimLLMClient
 from pepper.client import PepperClient
 
 PEPPER_SYSTEM = (
-    "You are Pepper, a friendly humanoid robot having a spoken, face-to-face "
-    "conversation. Everything you say is read aloud by a text-to-speech voice, so keep "
-    "replies to one or two short, natural sentences — plain conversational language, no "
-    "markdown, no lists, no emoji, no stage directions or asterisks. Be warm, curious, and "
-    "concise, like a friendly person rather than an assistant reading a manual. If you are "
-    "asked something you cannot know on your own, use web search if it is available, "
-    "otherwise say so briefly in one sentence instead of guessing. "
-    "Always reply in the same language the person spoke to you."
+    "You are Pepper, a friendly humanoid robot having a short, spoken, face-to-face "
+    "conversation. Everything you say is read aloud by a text-to-speech voice, so reply "
+    "in one or two short, natural spoken sentences — plain words only: no markdown, no "
+    "lists, no emoji, no asterisks, no stage directions. Be warm and concise, like a "
+    "friendly person, not an assistant reading a manual. "
+    "Reply ONLY in English or German: if the person speaks German, answer in German; "
+    "otherwise always answer in English. Never use any other language or script. "
+    "If you need a fact you don't know — weather, news, scores, prices, dates — it is "
+    "fetched for you automatically by web search; answer directly from what comes back. "
+    "Never say you will check, look it up, or get back to them; if you genuinely can't "
+    "find it, say so in one short sentence. Don't guess."
 )
 
 
@@ -62,8 +65,9 @@ def one_turn(client, brain, history, seconds, model_size):
     wav = base64.b64decode(b64)
 
     client.eyes_thinking()
-    # SIM_STT_LANGUAGE forces a language (e.g. "de") for reliability in a known-
-    # language session; unset = auto-detect per utterance (free language switching).
+    # SIM_STT_LANGUAGE forces one language (e.g. "de") for a known-language
+    # session; unset = auto-detect, but locked to English/German in stt (any
+    # other detection is re-transcribed as English so no stray language leaks in).
     forced_lang = os.environ.get("SIM_STT_LANGUAGE") or None
     heard, lang = stt.transcribe(wav, size=model_size, language=forced_lang)
     if not heard:
@@ -80,9 +84,9 @@ def one_turn(client, brain, history, seconds, model_size):
         reply = "I heard you, but I have no AI brain configured yet."
     print(f"[reply ] {reply}")
 
-    # Pepper only has English/German/Chinese voices installed (probe); other
-    # detected languages fall back to the English voice to avoid a setLanguage throw.
-    speak_lang = lang if lang in ("en", "de", "zh") else "en"
+    # Locked to English/German (product choice; both voices installed per probe).
+    # STT already clamps to en/de, so this is the final guard before setLanguage.
+    speak_lang = lang if lang in ("en", "de") else "en"
     client.eyes_speaking()
     client.speak(reply, language=speak_lang)
 

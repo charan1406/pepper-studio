@@ -24,13 +24,16 @@ class _Info:
 
 
 class FakeModel:
-    """Returns scripted segments/info, or raises if told to."""
+    """Returns scripted segments/info, or raises if told to. Records the
+    `language` arg of every transcribe call so tests can assert re-transcription."""
     def __init__(self, segments, language="en", raises=False):
         self._segments = segments
         self._language = language
         self._raises = raises
+        self.calls = []  # language passed to each transcribe() call
 
     def transcribe(self, audio, beam_size=1, language=None):
+        self.calls.append(language)
         if self._raises:
             raise RuntimeError("decode blew up")
         return list(self._segments), _Info(self._language)
@@ -67,9 +70,48 @@ def test_transcribe_failure_returns_empty(monkeypatch):
     assert stt.transcribe(b"somewav") == ("", "")
 
 
-def test_missing_language_info_is_empty_string(monkeypatch):
+def test_unknown_language_defaults_to_english(monkeypatch):
+    # info.language None -> can't tell -> labelled en (the lock's default),
+    # without paying for a second transcription pass.
     model = FakeModel([_Seg("hi")], language=None)
     monkeypatch.setattr(stt, "_get_model", lambda *a, **k: model)
     text, lang = stt.transcribe(b"somewav")
     assert text == "hi"
-    assert lang == ""              # info.language None -> "" not None
+    assert lang == "en"
+    assert model.calls == [None]   # single pass, no redo
+
+
+# ── en/de language lock ──
+
+def test_disallowed_language_retranscribes_as_english(monkeypatch):
+    # whisper detects Japanese (often a hallucination on noise) -> redo forced en.
+    model = FakeModel([_Seg("konnichiwa")], language="ja")
+    monkeypatch.setattr(stt, "_get_model", lambda *a, **k: model)
+    text, lang = stt.transcribe(b"somewav")
+    assert lang == "en"
+    assert model.calls == [None, "en"]   # auto-detect, then re-transcribe in en
+
+
+def test_german_is_allowed_no_redo(monkeypatch):
+    model = FakeModel([_Seg("Hallo")], language="de")
+    monkeypatch.setattr(stt, "_get_model", lambda *a, **k: model)
+    _, lang = stt.transcribe(b"somewav")
+    assert lang == "de"
+    assert model.calls == [None]         # de is allowed -> single pass
+
+
+def test_forced_language_skips_the_lock(monkeypatch):
+    # Explicit language overrides the lock entirely (no clamp, no redo).
+    model = FakeModel([_Seg("bonjour")], language="fr")
+    monkeypatch.setattr(stt, "_get_model", lambda *a, **k: model)
+    _, lang = stt.transcribe(b"somewav", language="fr")
+    assert lang == "fr"
+    assert model.calls == ["fr"]
+
+
+def test_empty_allowed_disables_the_lock(monkeypatch):
+    model = FakeModel([_Seg("konnichiwa")], language="ja")
+    monkeypatch.setattr(stt, "_get_model", lambda *a, **k: model)
+    _, lang = stt.transcribe(b"somewav", allowed=())
+    assert lang == "ja"
+    assert model.calls == [None]
