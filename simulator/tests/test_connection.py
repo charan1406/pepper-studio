@@ -176,3 +176,41 @@ def test_disconnect_kills_and_closes():
     assert s["bridge_url"] == ""
     assert ssh.closed
     assert any("fuser -k" in c for c in ssh.commands)
+
+
+# ── endpoints (against a live bridge subprocess) ───────────────────
+
+import json as _json  # noqa: E402
+import urllib.request  # noqa: E402
+
+
+def _get(base, path):
+    with urllib.request.urlopen(base + path, timeout=10) as r:
+        return _json.loads(r.read())
+
+
+def _post(base, path, payload):
+    req = urllib.request.Request(
+        base + path, method="POST", data=_json.dumps(payload).encode(),
+        headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=10) as r:
+        return _json.loads(r.read())
+
+
+def test_robot_status_endpoint_disconnected(bridge):
+    r = _get(bridge, "/robot/status")
+    assert r["success"] and r["data"]["state"] == "disconnected"
+
+
+def test_robot_connect_requires_host(bridge):
+    r = _post(bridge, "/robot/connect", {})
+    assert r["success"] is False and "host" in r["error"]
+
+
+def test_robot_connect_never_echoes_password(bridge):
+    r = _post(bridge, "/robot/connect",
+              {"host": "203.0.113.5", "user": "nao", "password": "supersecret"})
+    assert r["success"] is True
+    assert "supersecret" not in _json.dumps(r)
+    assert "supersecret" not in _json.dumps(_get(bridge, "/robot/status"))
+    _post(bridge, "/robot/disconnect", {})

@@ -30,6 +30,7 @@ import sys
 from llm import SimLLMClient
 import ai_config
 import runner
+import connection
 
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
@@ -519,12 +520,13 @@ class BridgeHandler(BaseHTTPRequestHandler):
             "/ai/config":      self._get_ai_config,
             "/ai/runner/status": self._get_runner_status,
             "/ai/runner/models": self._get_runner_models,
+            "/robot/status":   self._get_robot_status,
         }
 
         handler = routes.get(path)
         if handler:
             response = handler(params)
-            if path != "/ai/runner/status":  # frontend polls this ~1.5s; don't flood the API log
+            if path not in ("/ai/runner/status", "/robot/status"):  # UI polls these ~1.5s; don't flood the API log
                 pepper.log_api_call(path, "GET", response=response)
             self._send_json(response)
         else:
@@ -675,6 +677,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
             "/ai/test":            self._post_ai_test,
             "/ai/runner/start":    self._post_runner_start,
             "/ai/runner/stop":     self._post_runner_stop,
+            "/robot/connect":      self._post_robot_connect,
+            "/robot/disconnect":   self._post_robot_disconnect,
         }
 
         handler = routes.get(path)
@@ -968,6 +972,28 @@ class BridgeHandler(BaseHTTPRequestHandler):
     def _post_runner_stop(self, body):
         return {"success": True, "data": runner.stop()}
 
+    # ── Robot connection (studio-side; deploys + runs bridge.py on a real Pepper) ──
+
+    def _get_robot_status(self, params):
+        return {"success": True, "data": connection.status()}
+
+    def _post_robot_connect(self, body):
+        host = (body.get("host") or "").strip()
+        if not host:
+            return {"success": False, "error": "host required"}
+        connection.connect(
+            host, (body.get("user") or "nao").strip(),
+            password=body.get("password") or None,
+            ssh_port=int(body.get("ssh_port") or 22),
+            naoqi_port=int(body.get("naoqi_port") or 9559),
+            bridge_port=int(body.get("bridge_port") or 5001),
+        )
+        return {"success": True, "data": connection.status()}
+
+    def _post_robot_disconnect(self, body):
+        connection.disconnect()
+        return {"success": True, "data": connection.status()}
+
     def _query_llm(self, text):
         """Try the configured AI → mock fallback."""
         system = build_system_prompt(pepper.to_dict(), datetime.datetime.now())
@@ -1093,7 +1119,8 @@ def main():
         opener.start()
 
     atexit.register(runner.stop)
-    signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))  # → atexit → runner.stop
+    atexit.register(connection.disconnect)  # never leave an orphan bridge on the robot
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))  # → atexit → runner.stop / disconnect
 
     try:
         server.serve_forever()
