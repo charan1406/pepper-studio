@@ -6,6 +6,8 @@ import {
 } from '../lib/bridge';
 import AISettings from './AISettings';
 import RobotConnection from './RobotConnection';
+import VoicePanel from './VoicePanel';
+import ServicesPanel from './ServicesPanel';
 
 const C = {
   panel: {
@@ -117,6 +119,18 @@ export default function ControlPanel() {
           </div>
         )}
         <AISettings />
+      </div>
+
+      {/* Voice */}
+      <div style={C.section}>
+        <div style={C.sectionTitle}>Voice</div>
+        <VoicePanel />
+      </div>
+
+      {/* Services */}
+      <div style={C.section}>
+        <div style={C.sectionTitle}>Services</div>
+        <ServicesPanel />
       </div>
 
       {/* Movement */}

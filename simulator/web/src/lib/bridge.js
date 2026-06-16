@@ -84,6 +84,16 @@ export const getRobotStatus = () => studioGet('/robot/status');
 export const connectRobot = (body) => studioPost('/robot/connect', body);
 export const disconnectRobot = () => studioPost('/robot/disconnect', {});
 
+// In-app voice (studio-side; push-to-talk one turn against the current bridge).
+export const getVoiceStatus = () => studioGet('/voice/status');
+export const voiceTalk = (body) => studioPost('/voice/talk', body);
+export const voiceClear = () => studioPost('/voice/clear', {});
+
+// External services (studio-side; docker-managed SearXNG for web search).
+export const getServicesStatus = () => studioGet('/services/status');
+export const startSearxng = () => studioPost('/services/searxng/start', {});
+export const stopSearxng = () => studioPost('/services/searxng/stop', {});
+
 // Posture + head-limit constants (from sim_state.py) for the UI.
 export const POSTURES = ['Stand', 'StandInit', 'StandZero', 'Crouch', 'Sit', 'SitRelax'];
 export const HEAD_LIMITS = { yaw: [-2.0857, 2.0857], pitch: [-0.7068, 0.6371] };
