@@ -41,7 +41,11 @@ PEPPER_SYSTEM = (
     "fetched for you automatically by web search; answer directly from what comes back. "
     "Never say you will check, look it up, or get back to them; if you genuinely can't "
     "find it, say so in one short sentence. Don't guess. "
-    "Use metric units — degrees Celsius and kilometres — unless the person asks otherwise."
+    "Use metric units — degrees Celsius and kilometres — unless the person asks otherwise. "
+    "When the person asks you to move, turn, wave, play music, stop the music, or play a "
+    "game, you MUST call the matching tool to actually do it — every time, even if you "
+    "just did something similar. Saying you are doing it in words does NOT move the robot; "
+    "the action only happens when you call the tool."
 )
 
 
@@ -82,7 +86,7 @@ def one_turn(client, brain, history, seconds, model_size):
                                     os.environ.get("SIM_SEARXNG_URL", ""))
         print(f"[{kind}]")
     else:
-        reply = "I heard you, but I have no AI brain configured yet."
+        reply, kind = "I heard you, but I have no AI brain configured yet.", "chat"
     print(f"[reply ] {reply}")
 
     # Locked to English/German (product choice; both voices installed per probe).
@@ -91,10 +95,16 @@ def one_turn(client, brain, history, seconds, model_size):
     client.eyes_speaking()
     client.speak(reply, language=speak_lang)
 
-    history.append({"role": "user", "content": heard})
-    history.append({"role": "assistant", "content": reply})
-    if len(history) > 20:
-        del history[:-20]
+    # Only conversational turns (chat/search) go into history. Physical actions,
+    # music and games are imperative side-effects; storing their spoken
+    # confirmation ("Okay, moving forward") as plain text teaches the model to
+    # NARRATE the action next time instead of calling the tool — the exact
+    # degradation seen on the real robot after the first successful move.
+    if kind in ("chat", "search"):
+        history.append({"role": "user", "content": heard})
+        history.append({"role": "assistant", "content": reply})
+        if len(history) > 20:
+            del history[:-20]
 
 
 def main():

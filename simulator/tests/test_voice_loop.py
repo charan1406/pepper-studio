@@ -135,6 +135,25 @@ def test_brain_off_speaks_placeholder(monkeypatch):
     assert "no AI brain" in client.spoke[0][0]
 
 
+def test_action_turns_stay_out_of_history(monkeypatch):
+    # Physical actions must NOT pollute history, or the model learns to narrate
+    # ("Okay, moving forward") instead of calling the move tool next turn.
+    _patch(monkeypatch, respond_ret=("Okay, moving backward.", "action:move"))
+    client = FakeClient()
+    history = []
+    voice_loop.one_turn(client, FakeBrain(), history, 5, "small")
+    assert client.spoke == [("Okay, moving backward.", "en")]  # still spoken
+    assert history == []                                        # but not stored
+
+
+def test_search_turns_are_kept_in_history(monkeypatch):
+    _patch(monkeypatch, respond_ret=("It's 14 degrees.", "search"))
+    client = FakeClient()
+    history = []
+    voice_loop.one_turn(client, FakeBrain(), history, 5, "small")
+    assert len(history) == 2          # chat/search turns are conversational context
+
+
 def test_history_truncates_to_20(monkeypatch):
     _patch(monkeypatch)
     client = FakeClient()

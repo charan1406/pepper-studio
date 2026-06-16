@@ -100,8 +100,11 @@ class SimLLMClient:
         if not self.enabled:
             return LLMResult(success=False, error="AI disabled (no base_url)", tool_calls=[])
 
+        # Low temperature: tool selection should be deterministic, not creative.
+        # At 0.7 a small model intermittently narrates an action instead of
+        # emitting the tool call (observed on Pepper).
         body = {"model": self.model, "messages": messages,
-                "temperature": 0.7, "stream": False}
+                "temperature": 0.2, "stream": False}
         if tools:
             body["tools"] = tools
             body["tool_choice"] = "auto"
