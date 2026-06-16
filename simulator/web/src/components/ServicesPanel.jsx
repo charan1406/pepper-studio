@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getServicesStatus, startSearxng, stopSearxng, getRunnerStatus } from '../lib/bridge';
+import { getServicesStatus, startSearxng, stopSearxng, getRunnerStatus, getSearxngUrl, setSearxngUrl } from '../lib/bridge';
 
 const S = {
   btn: { padding: '6px 10px', background: '#3a3a3c', border: '1px solid #4a4a4c', borderRadius: '6px', color: '#e5e5e5', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit' },
@@ -9,11 +9,13 @@ const S = {
   dot: (on) => ({ width: '8px', height: '8px', borderRadius: '50%', background: on ? '#8aba8a' : '#6a6a6c', display: 'inline-block' }),
   state: (on) => ({ fontSize: '11px', color: on ? '#8aba8a' : '#888', minWidth: '64px' }),
   note: { fontSize: '10px', color: '#666', marginTop: '4px' },
+  input: { width: '100%', padding: '6px 8px', background: '#1c1c1e', border: '1px solid #3a3a3c', borderRadius: '6px', color: '#e5e5e5', fontSize: '11px', outline: 'none', fontFamily: 'inherit', marginTop: '6px', boxSizing: 'border-box' },
 };
 
 export default function ServicesPanel() {
   const [searxng, setSearxng] = useState({ running: false, present: false, error: '' });
   const [runner, setRunner] = useState({ state: 'stopped' });
+  const [url, setUrl] = useState(getSearxngUrl());
 
   const refresh = () => {
     getServicesStatus().then((r) => { if (r?.data?.searxng) setSearxng(r.data.searxng); }).catch(() => {});
@@ -48,6 +50,9 @@ export default function ServicesPanel() {
         <span style={{ ...S.note, marginLeft: 'auto', marginTop: 0 }}>manage in AI ▸</span>
       </div>
       {searxng.error && <div style={S.note}>{searxng.error}</div>}
+      <input style={S.input} value={url} placeholder="SearXNG URL (blank = web search off)"
+        onChange={(e) => { setUrl(e.target.value); setSearxngUrl(e.target.value); }} />
+      <div style={S.note}>URL the voice loop uses for web search. Saved locally.</div>
     </div>
   );
 }

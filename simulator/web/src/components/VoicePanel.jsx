@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { getVoiceStatus, voiceTalk, voiceClear, getBridgeUrl } from '../lib/bridge';
+import { getVoiceStatus, voiceTalk, voiceClear, getBridgeUrl, getSearxngUrl } from '../lib/bridge';
 
 const S = {
   input: { width: '100%', padding: '8px 10px', background: '#1c1c1e', border: '1px solid #3a3a3c', borderRadius: '6px', color: '#e5e5e5', fontSize: '12px', outline: 'none', fontFamily: 'inherit', marginBottom: '6px', boxSizing: 'border-box' },
@@ -29,7 +29,7 @@ export default function VoicePanel() {
   useEffect(() => { if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight; }, [status.transcript]);
 
   const onTalk = async () => {
-    const r = await voiceTalk({ bridge_url: getBridgeUrl(), seconds: Number(secs) || 5 });
+    const r = await voiceTalk({ bridge_url: getBridgeUrl(), searxng_url: getSearxngUrl(), seconds: Number(secs) || 5 });
     if (r?.data) setStatus(r.data);
   };
 

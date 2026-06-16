@@ -1014,7 +1014,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
         data = voice_service.talk(
             brain, bridge_url,
             seconds=float(body.get("seconds") or 5),
-            model_size=str(body.get("model") or "small"))
+            model_size=str(body.get("model") or "small"),
+            searxng_url=(body.get("searxng_url") or "").strip())
         return {"success": True, "data": data}
 
     def _post_voice_clear(self, body):

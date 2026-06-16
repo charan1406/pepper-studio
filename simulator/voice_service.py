@@ -55,10 +55,11 @@ def _default_client(url):
     return PepperClient(url)
 
 
-def _do_turn(brain, bridge_url, seconds, model_size, client_factory):
+def _do_turn(brain, bridge_url, seconds, model_size, client_factory, searxng_url=""):
     try:
         client = client_factory(bridge_url)
-        result = voice_loop.one_turn(client, brain, _history, seconds, model_size)
+        result = voice_loop.one_turn(client, brain, _history, seconds, model_size,
+                                     searxng_url=searxng_url)
         if not result:
             with _lock:
                 _state["error"] = "heard nothing (silence, mic off, or STT unavailable)"
@@ -75,7 +76,8 @@ def _do_turn(brain, bridge_url, seconds, model_size, client_factory):
             _state["state"] = "idle"
 
 
-def talk(brain, bridge_url, seconds=5, model_size="small", client_factory=None):
+def talk(brain, bridge_url, seconds=5, model_size="small", searxng_url="",
+         client_factory=None):
     """Run one push-to-talk turn on a worker thread. No-op while already busy."""
     with _lock:
         busy = _state["state"] == "busy"
@@ -86,6 +88,7 @@ def talk(brain, bridge_url, seconds=5, model_size="small", client_factory=None):
         return status()
     threading.Thread(
         target=_do_turn,
-        args=(brain, bridge_url, seconds, model_size, client_factory or _default_client),
+        args=(brain, bridge_url, seconds, model_size,
+              client_factory or _default_client, searxng_url),
         daemon=True).start()
     return status()

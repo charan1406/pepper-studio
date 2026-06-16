@@ -21,6 +21,28 @@ export function setBridgeUrl(url) {
   }
 }
 
+// SearXNG URL is a user setting too (web search for the in-app voice loop).
+// Defaults to the common local container port; '' disables web search.
+export const SEARXNG_URL_KEY = 'pepper_searxng_url';
+
+export function getSearxngUrl() {
+  try {
+    const saved = localStorage.getItem(SEARXNG_URL_KEY);
+    if (saved !== null) return saved.trim().replace(/\/+$/, '');
+  } catch {
+    // fall through to default
+  }
+  return 'http://localhost:8888';
+}
+
+export function setSearxngUrl(url) {
+  try {
+    localStorage.setItem(SEARXNG_URL_KEY, (url || '').trim());
+  } catch {
+    // ignore — settings just won't persist
+  }
+}
+
 async function post(path, body = {}) {
   const res = await fetch(`${getBridgeUrl()}${path}`, {
     method: 'POST',

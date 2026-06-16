@@ -11,6 +11,7 @@ vi.mock('../lib/bridge', async (importOriginal) => {
     voiceTalk: vi.fn().mockResolvedValue({ success: true, data: { state: 'busy', transcript: [], error: '' } }),
     voiceClear: vi.fn().mockResolvedValue({ success: true, data: { state: 'idle', transcript: [], error: '' } }),
     getBridgeUrl: vi.fn(() => 'http://192.168.1.17:5001'),
+    getSearxngUrl: vi.fn(() => 'http://localhost:8888'),
   };
 });
 
@@ -21,7 +22,9 @@ describe('VoicePanel', () => {
     render(<VoicePanel />);
     fireEvent.click(screen.getByRole('button', { name: /talk to pepper/i }));
     await waitFor(() => expect(bridge.voiceTalk).toHaveBeenCalled());
-    expect(bridge.voiceTalk.mock.calls[0][0].bridge_url).toBe('http://192.168.1.17:5001');
+    const body = bridge.voiceTalk.mock.calls[0][0];
+    expect(body.bridge_url).toBe('http://192.168.1.17:5001');
+    expect(body.searxng_url).toBe('http://localhost:8888');
   });
 
   it('renders the transcript from status', async () => {

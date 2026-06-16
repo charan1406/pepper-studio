@@ -45,6 +45,16 @@ def test_turn_builds_transcript(monkeypatch):
     assert s["error"] == ""
 
 
+def test_searxng_url_passed_through_to_one_turn(monkeypatch):
+    seen = {}
+    monkeypatch.setattr(voice_service.voice_loop, "one_turn",
+                        lambda *a, **k: seen.update(k) or
+                        {"heard": "h", "lang": "en", "reply": "r", "kind": "chat"})
+    voice_service._do_turn(FakeBrain(), "http://x:5001", 5, "small", _factory,
+                           "http://searx.local")
+    assert seen["searxng_url"] == "http://searx.local"
+
+
 def test_turn_nothing_heard_sets_error(monkeypatch):
     monkeypatch.setattr(voice_service.voice_loop, "one_turn", lambda *a, **k: None)
     voice_service._do_turn(FakeBrain(), "http://x:5001", 5, "small", _factory)

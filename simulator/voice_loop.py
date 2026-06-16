@@ -60,7 +60,7 @@ def build_brain():
     )
 
 
-def one_turn(client, brain, history, seconds, model_size):
+def one_turn(client, brain, history, seconds, model_size, searxng_url=None):
     print(f"\n[listening {seconds}s] ...", flush=True)
     client.eyes_listening()
     b64 = client.record_audio(seconds)
@@ -82,8 +82,10 @@ def one_turn(client, brain, history, seconds, model_size):
     print(f"[heard ] ({lang}) {heard}")
 
     if brain.enabled:
-        reply, kind = agent.respond(brain, client, PEPPER_SYSTEM, heard, history,
-                                    os.environ.get("SIM_SEARXNG_URL", ""))
+        # searxng_url=None means "fall back to env" (CLI default); the in-app
+        # caller passes an explicit URL (a setting), "" to disable web search.
+        sx = searxng_url if searxng_url is not None else os.environ.get("SIM_SEARXNG_URL", "")
+        reply, kind = agent.respond(brain, client, PEPPER_SYSTEM, heard, history, sx)
         print(f"[{kind}]")
     else:
         reply, kind = "I heard you, but I have no AI brain configured yet.", "chat"

@@ -61,6 +61,7 @@ def _patch(monkeypatch, transcribe_ret=("Hello there", "en"),
     def fake_respond(brain, client, system, question, history, searxng_url=""):
         seen["question"] = question
         seen["history_len_at_call"] = len(history)
+        seen["searxng_url"] = searxng_url
         return respond_ret
 
     monkeypatch.setattr(voice_loop.stt, "transcribe", fake_transcribe)
@@ -174,3 +175,17 @@ def test_auto_detect_when_no_forced_language(monkeypatch):
     monkeypatch.delenv("SIM_STT_LANGUAGE", raising=False)
     voice_loop.one_turn(FakeClient(), FakeBrain(), [], 5, "small")
     assert seen["language"] is None      # auto-detect per utterance
+
+
+def test_explicit_searxng_url_passed_to_agent(monkeypatch):
+    seen = _patch(monkeypatch)
+    voice_loop.one_turn(FakeClient(), FakeBrain(), [], 5, "small",
+                        searxng_url="http://searx.local")
+    assert seen["searxng_url"] == "http://searx.local"
+
+
+def test_searxng_url_none_falls_back_to_env(monkeypatch):
+    seen = _patch(monkeypatch)
+    monkeypatch.setenv("SIM_SEARXNG_URL", "http://from-env:8888")
+    voice_loop.one_turn(FakeClient(), FakeBrain(), [], 5, "small")  # default None
+    assert seen["searxng_url"] == "http://from-env:8888"
