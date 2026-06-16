@@ -730,6 +730,37 @@ class BridgeHandler(BaseHTTPRequestHandler):
 
 
 # ─── Main ────────────────────────────────────────────────────────
+def prepare_robot():
+    """Put the robot into a clean, controllable teleop state.
+
+    Fresh-booted Pepper runs Autonomous Life ('solitary'), so it wanders on its
+    own AND that controller fights explicit moveTo commands (a 30cm move nets a
+    few cm). We stop Autonomous Life + idle 'life' motions, then wake up and
+    stand so motion commands actually move the base. Each step is best-effort:
+    a service that doesn't exist on this firmware is skipped, never fatal."""
+    steps = [
+        ("disable Autonomous Life", lambda: naoqi.autonomous.setState("disabled")),
+        ("wake up (stiffen + stand)", lambda: naoqi.motion.wakeUp()),
+        ("disable Basic Awareness", lambda: naoqi.awareness.setEnabled(False)),
+        ("stop background movement",
+         lambda: naoqi.get("ALBackgroundMovement").setEnabled(False)),
+        ("stop listening movement",
+         lambda: naoqi.get("ALListeningMovement").setEnabled(False)),
+        ("stop speaking movement",
+         lambda: naoqi.get("ALSpeakingMovement").setEnabled(False)),
+        ("stop breathing idle",
+         lambda: naoqi.motion.setBreathEnabled("Body", False)),
+        ("stand init", lambda: naoqi.posture.goToPosture("StandInit", 0.5)),
+    ]
+    print("[INIT] preparing clean teleop state ...")
+    for label, fn in steps:
+        try:
+            fn()
+            print("  [init] %s" % label)
+        except Exception as e:
+            print("  [init] skip %s (%s)" % (label, e))
+
+
 def main():
     global naoqi, ROBOT_IP, ROBOT_PORT
 
@@ -737,6 +768,8 @@ def main():
     parser.add_argument("--ip", type=str, default="192.168.1.100", help="Robot IP")
     parser.add_argument("--port", type=int, default=9559, help="NAOqi port")
     parser.add_argument("--bridge-port", type=int, default=5001, help="Bridge HTTP port")
+    parser.add_argument("--no-init", action="store_true",
+                        help="don't disable Autonomous Life / stand on startup")
     args = parser.parse_args()
 
     ROBOT_IP = args.ip
@@ -762,6 +795,9 @@ def main():
         print("[ERROR] Cannot connect to Pepper: %s" % str(e))
         print("        Check IP address and ensure robot is on.")
         sys.exit(1)
+
+    if not args.no_init:
+        prepare_robot()
 
     server = ThreadedHTTPServer(("0.0.0.0", args.bridge_port), BridgeHandler)
     print("[BRIDGE] Listening on port %d" % args.bridge_port)

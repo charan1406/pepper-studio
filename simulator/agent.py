@@ -48,7 +48,8 @@ def respond(brain, client, system, question, history, searxng_url=""):
 
     routed = brain.chat_tools(messages, tools)
     if routed.tool_calls:
-        print("[tools] " + ", ".join(c["name"] for c in routed.tool_calls))
+        print("[tools] " + ", ".join("%s(%s)" % (c["name"], c["args"])
+                                     for c in routed.tool_calls))
 
     if routed.success and routed.tool_calls:
         # Run EVERY action the model asked for, in order — it often decomposes
