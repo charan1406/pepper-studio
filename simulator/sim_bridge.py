@@ -31,6 +31,7 @@ from llm import SimLLMClient
 import ai_config
 import runner
 import connection
+import voice_service
 
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
@@ -521,12 +522,13 @@ class BridgeHandler(BaseHTTPRequestHandler):
             "/ai/runner/status": self._get_runner_status,
             "/ai/runner/models": self._get_runner_models,
             "/robot/status":   self._get_robot_status,
+            "/voice/status":   self._get_voice_status,
         }
 
         handler = routes.get(path)
         if handler:
             response = handler(params)
-            if path not in ("/ai/runner/status", "/robot/status"):  # UI polls these ~1.5s; don't flood the API log
+            if path not in ("/ai/runner/status", "/robot/status", "/voice/status"):  # UI polls these ~1.5s; don't flood the API log
                 pepper.log_api_call(path, "GET", response=response)
             self._send_json(response)
         else:
@@ -679,6 +681,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
             "/ai/runner/stop":     self._post_runner_stop,
             "/robot/connect":      self._post_robot_connect,
             "/robot/disconnect":   self._post_robot_disconnect,
+            "/voice/talk":         self._post_voice_talk,
+            "/voice/clear":        self._post_voice_clear,
         }
 
         handler = routes.get(path)
@@ -993,6 +997,25 @@ class BridgeHandler(BaseHTTPRequestHandler):
     def _post_robot_disconnect(self, body):
         connection.disconnect()
         return {"success": True, "data": connection.status()}
+
+    # ── In-app voice (push-to-talk: record via bridge -> STT -> brain -> speak) ──
+
+    def _get_voice_status(self, params):
+        return {"success": True, "data": voice_service.status()}
+
+    def _post_voice_talk(self, body):
+        bridge_url = (body.get("bridge_url") or "").strip()
+        if not bridge_url:
+            return {"success": False, "error": "bridge_url required"}
+        data = voice_service.talk(
+            brain, bridge_url,
+            seconds=float(body.get("seconds") or 5),
+            model_size=str(body.get("model") or "small"))
+        return {"success": True, "data": data}
+
+    def _post_voice_clear(self, body):
+        voice_service.clear()
+        return {"success": True, "data": voice_service.status()}
 
     def _query_llm(self, text):
         """Try the configured AI → mock fallback."""

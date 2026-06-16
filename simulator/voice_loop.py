@@ -20,14 +20,14 @@ import base64
 import os
 import sys
 
-# Import the bridge HTTP client from the repo root and the sibling stt module.
+# Sibling modules (agent/stt/llm) live in this dir. The bridge HTTP client lives
+# in the repo root (pepper/client.py) — imported lazily in main() so importing
+# this module never adds the repo root to sys.path (keeps sim_bridge decoupled).
 sys.path.insert(0, os.path.dirname(__file__))
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import agent
 import stt
 from llm import SimLLMClient
-from pepper.client import PepperClient
 
 PEPPER_SYSTEM = (
     "You are Pepper, a friendly humanoid robot having a short, spoken, face-to-face "
@@ -106,6 +106,8 @@ def one_turn(client, brain, history, seconds, model_size):
         if len(history) > 20:
             del history[:-20]
 
+    return {"heard": heard, "lang": lang, "reply": reply, "kind": kind}
+
 
 def main():
     ap = argparse.ArgumentParser(description="Pepper voice loop (record -> STT -> LLM -> speak)")
@@ -115,6 +117,8 @@ def main():
     ap.add_argument("--loop", action="store_true", help="keep going turn after turn")
     args = ap.parse_args()
 
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from pepper.client import PepperClient
     client = PepperClient(args.bridge)
     if not client.is_alive():
         print(f"[fatal] no bridge at {args.bridge} — start it or fix the URL")
