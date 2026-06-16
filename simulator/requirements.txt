@@ -19,3 +19,4 @@ websockets>=12.0
 # binary (alsa-utils) and a voice .onnx model; point at it with SIM_PIPER_MODEL.
 # piper-tts>=1.4.0
 # flask>=3.0.0
+paramiko
