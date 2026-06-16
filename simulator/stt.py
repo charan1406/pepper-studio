@@ -36,8 +36,18 @@ def _get_model(size="small", device="cpu", compute_type="int8"):
 
 def _run(model, wav_bytes, language):
     segments, info = model.transcribe(
-        io.BytesIO(wav_bytes), beam_size=1, language=language)
-    text = " ".join(s.text.strip() for s in segments).strip()
+        io.BytesIO(wav_bytes), beam_size=1, language=language,
+        vad_filter=True)
+    segs = list(segments)
+    text = " ".join(s.text.strip() for s in segs).strip()
+    # Whisper invents plausible text on noise/near-silence ("Thanks for
+    # watching", "Ben was a university built"). vad_filter drops most non-speech;
+    # this gate drops what slips through, by mean no-speech probability. getattr
+    # keeps it safe for models/tests that don't expose per-segment probs.
+    if segs:
+        nsp = [getattr(s, "no_speech_prob", 0.0) for s in segs]
+        if sum(nsp) / len(nsp) > 0.6:
+            text = ""
     return text, (info.language or "")
 
 

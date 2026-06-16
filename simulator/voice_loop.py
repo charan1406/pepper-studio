@@ -40,7 +40,8 @@ PEPPER_SYSTEM = (
     "If you need a fact you don't know — weather, news, scores, prices, dates — it is "
     "fetched for you automatically by web search; answer directly from what comes back. "
     "Never say you will check, look it up, or get back to them; if you genuinely can't "
-    "find it, say so in one short sentence. Don't guess."
+    "find it, say so in one short sentence. Don't guess. "
+    "Use metric units — degrees Celsius and kilometres — unless the person asks otherwise."
 )
 
 

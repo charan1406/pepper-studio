@@ -14,8 +14,9 @@ import stt  # noqa: E402
 
 
 class _Seg:
-    def __init__(self, text):
+    def __init__(self, text, no_speech_prob=0.0):
         self.text = text
+        self.no_speech_prob = no_speech_prob
 
 
 class _Info:
@@ -32,7 +33,7 @@ class FakeModel:
         self._raises = raises
         self.calls = []  # language passed to each transcribe() call
 
-    def transcribe(self, audio, beam_size=1, language=None):
+    def transcribe(self, audio, beam_size=1, language=None, **kwargs):
         self.calls.append(language)
         if self._raises:
             raise RuntimeError("decode blew up")
@@ -115,3 +116,21 @@ def test_empty_allowed_disables_the_lock(monkeypatch):
     _, lang = stt.transcribe(b"somewav", allowed=())
     assert lang == "ja"
     assert model.calls == [None]
+
+
+# ── hallucination gate (whisper inventing text on noise) ──
+
+def test_high_no_speech_prob_is_dropped(monkeypatch):
+    # "Ben was a university built." style hallucination on non-speech audio.
+    model = FakeModel([_Seg("Ben was a university built.", no_speech_prob=0.9)])
+    monkeypatch.setattr(stt, "_get_model", lambda *a, **k: model)
+    text, _ = stt.transcribe(b"somewav")
+    assert text == ""          # dropped -> loop treats it as "heard nothing"
+
+
+def test_real_speech_passes_the_gate(monkeypatch):
+    model = FakeModel([_Seg("hello there", no_speech_prob=0.05)], language="en")
+    monkeypatch.setattr(stt, "_get_model", lambda *a, **k: model)
+    text, lang = stt.transcribe(b"somewav")
+    assert text == "hello there"
+    assert lang == "en"
