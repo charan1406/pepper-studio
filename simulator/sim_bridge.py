@@ -30,6 +30,7 @@ import sys
 from llm import SimLLMClient
 import ai_config
 import runner
+import provision
 import connection
 import voice_service
 import services
@@ -125,6 +126,45 @@ def _rebuild_brain():
 
 runner.set_callbacks(on_ready=lambda url, model: _rebuild_brain(),
                      on_exit=_rebuild_brain)
+
+# ─── Bundle marker + first-run LLM provisioning ("full" build only) ──────────
+# bundle.json is written into the bundle by the .spec; absent in a source run.
+def _read_bundle():
+    try:
+        with open(os.path.join(_BASE_DIR, "bundle.json")) as f:
+            return str(json.load(f).get("bundle", "lean")).lower()
+    except (OSError, ValueError):
+        return "lean"
+
+
+BUNDLE = _read_bundle()
+_provision_thread = None
+
+
+def _provision_handoff():
+    """On a finished download, point the runner at the fetched binary + GGUF."""
+    st = provision.status()
+    if st["state"] != "done":
+        return
+    _runner_cfg["binary"] = st["binary"]
+    _runner_cfg["models_dir"] = provision.MODELS_DIR
+    _runner_cfg["gguf"] = st["gguf"]
+    runner.save(_runner_cfg)
+    runner.start(st["gguf"], _runner_cfg.get("flags", {}), binary=st["binary"])
+
+
+def _start_provision(backend=None):
+    global _provision_thread
+    if _provision_thread and _provision_thread.is_alive():
+        return provision.status()
+
+    def _run():
+        provision.provision(backend=backend)
+        _provision_handoff()
+
+    _provision_thread = threading.Thread(target=_run, daemon=True)
+    _provision_thread.start()
+    return provision.status()
 
 # ─── Local TTS (Piper sidecar) ───────────────────────────────────
 # Browser TTS is the default audio path. When piper-tts + flask + aplay + a model
@@ -522,6 +562,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
             "/ai/config":      self._get_ai_config,
             "/ai/runner/status": self._get_runner_status,
             "/ai/runner/models": self._get_runner_models,
+            "/ai/provision/status": self._get_provision_status,
             "/robot/status":   self._get_robot_status,
             "/voice/status":   self._get_voice_status,
             "/services/status": self._get_services_status,
@@ -530,7 +571,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
         handler = routes.get(path)
         if handler:
             response = handler(params)
-            if path not in ("/ai/runner/status", "/robot/status", "/voice/status", "/services/status"):  # UI polls these ~1.5s; don't flood the API log
+            if path not in ("/ai/runner/status", "/ai/provision/status", "/robot/status", "/voice/status", "/services/status"):  # UI polls these ~1.5s; don't flood the API log
                 pepper.log_api_call(path, "GET", response=response)
             self._send_json(response)
         else:
@@ -681,6 +722,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
             "/ai/test":            self._post_ai_test,
             "/ai/runner/start":    self._post_runner_start,
             "/ai/runner/stop":     self._post_runner_stop,
+            "/ai/provision/start": self._post_provision_start,
             "/robot/connect":      self._post_robot_connect,
             "/robot/disconnect":   self._post_robot_disconnect,
             "/voice/talk":         self._post_voice_talk,
@@ -979,6 +1021,18 @@ class BridgeHandler(BaseHTTPRequestHandler):
 
     def _post_runner_stop(self, body):
         return {"success": True, "data": runner.stop()}
+
+    def _get_provision_status(self, params):
+        data = dict(provision.status())
+        data["bundle"] = BUNDLE
+        data["provisioned"] = provision.is_provisioned()
+        return {"success": True, "data": data}
+
+    def _post_provision_start(self, body):
+        if BUNDLE != "full":
+            return {"success": False, "error": "auto-provisioning is only available in the 'full' build"}
+        backend = (body.get("backend") or "").strip().lower() or None
+        return {"success": True, "data": _start_provision(backend=backend)}
 
     # ── Robot connection (studio-side; deploys + runs bridge.py on a real Pepper) ──
 

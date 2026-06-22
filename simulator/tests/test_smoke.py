@@ -40,10 +40,15 @@ def _post(base, path, payload):
         return json.loads(r.read())
 
 
-def test_single_process_end_to_end():
+def test_single_process_end_to_end(tmp_path):
     port, ws_port = _free_port(), _free_port()
+    # Hermetic HOME so a persisted ~/.pepper-studio/ai.json on the dev box can't
+    # leak in and flip AI on (would route /chat to "ai" instead of "mock").
+    home = str(tmp_path)
     env = dict(os.environ)
     env.update({
+        "HOME": home,
+        "USERPROFILE": home,  # Windows runner in the CI matrix
         "SIM_BRIDGE_PORT": str(port),
         "SIM_WS_PORT": str(ws_port),
         "SIM_OPEN_BROWSER": "0",

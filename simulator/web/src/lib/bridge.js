@@ -95,6 +95,10 @@ export const getAiConfig = () => studioGet('/ai/config');
 export const setAiConfig = (cfg) => studioPost('/ai/config', cfg);
 export const testAiConfig = (cfg) => studioPost('/ai/test', cfg);
 
+// First-run LLM provisioning ("full" build: auto-download llama.cpp + a GGUF).
+export const getProvisionStatus = () => studioGet('/ai/provision/status');
+export const startProvision = (backend) => studioPost('/ai/provision/start', backend ? { backend } : {});
+
 // Local model runner (llama-server sidecar).
 export const getRunnerStatus = () => studioGet('/ai/runner/status');
 export const listModels = (dir) => studioGet(`/ai/runner/models?dir=${encodeURIComponent(dir || '')}`);

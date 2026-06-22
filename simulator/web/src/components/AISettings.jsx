@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { getAiConfig, setAiConfig, testAiConfig } from '../lib/bridge';
+import { getAiConfig, setAiConfig, testAiConfig, getProvisionStatus } from '../lib/bridge';
 import LocalRunnerPanel from './LocalRunnerPanel';
+import ProvisionPanel from './ProvisionPanel';
 
 const S = {
   btn: { padding: '4px 8px', background: '#3a3a3c', border: '1px solid #4a4a4c', borderRadius: '6px', color: '#e5e5e5', fontSize: '11px', cursor: 'pointer', fontFamily: 'inherit' },
@@ -17,9 +18,17 @@ export default function AISettings() {
   const [source, setSource] = useState('cloud');
   const [keyDraft, setKeyDraft] = useState('');
   const [status, setStatus] = useState('');
+  const [bundle, setBundle] = useState('lean');
 
-  const refresh = () =>
+  const refresh = () => {
     getAiConfig().then((r) => { if (r?.data) setCfg((prev) => ({ ...prev, ...r.data })); }).catch(() => {});
+    getProvisionStatus().then((r) => {
+      if (!r?.data) return;
+      setBundle(r.data.bundle || 'lean');
+      // First run of the "full" build with nothing downloaded -> land on Auto setup.
+      if (r.data.bundle === 'full' && !r.data.provisioned) setSource('auto');
+    }).catch(() => {});
+  };
 
   const onToggle = () => { const next = !open; setOpen(next); if (next) refresh(); };
 
@@ -57,13 +66,17 @@ export default function AISettings() {
       <button style={S.btn} onClick={onToggle}>AI</button>
       {open && (
         <div style={{ marginTop: '10px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginBottom: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${bundle === 'full' ? 4 : 3}, 1fr)`, gap: '6px', marginBottom: '8px' }}>
+            {bundle === 'full' && (
+              <button style={S.tab(source === 'auto')} onClick={() => setSource('auto')}>Auto</button>
+            )}
             <button style={S.tab(source === 'cloud')} onClick={() => setSource('cloud')}>Cloud</button>
             <button style={S.tab(source === 'local')} onClick={() => setSource('local')}>Local server</button>
             <button style={S.tab(source === 'gguf')} onClick={() => setSource('gguf')}>Local GGUF</button>
           </div>
+          {source === 'auto' && <ProvisionPanel />}
           {source === 'gguf' && <LocalRunnerPanel />}
-          {source !== 'gguf' && (
+          {source !== 'gguf' && source !== 'auto' && (
             <>
               <input style={S.input} value={cfg.base_url ?? ''} placeholder="base_url (e.g. http://localhost:8090/v1)"
                 onChange={(e) => setCfg({ ...cfg, base_url: e.target.value })} />

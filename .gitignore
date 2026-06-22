@@ -11,7 +11,12 @@ node_modules/
 # PyInstaller build (root-anchored; does NOT match simulator/web/dist/)
 /build/
 /dist/
-.buildvenv/
+.buildvenv*
+build.zip
+
+# Local agent + machine-specific artifacts
+.claude/
+pepper_probe_report.txt
 
 # Local working docs (specs/plans live here, kept out of git)
 docs/
