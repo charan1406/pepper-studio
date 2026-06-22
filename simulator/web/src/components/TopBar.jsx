@@ -23,6 +23,7 @@ export default function TopBar() {
   const isMoving = usePepperStore((s) => s.isMoving);
   const mode = usePepperStore((s) => s.mode);
   const setMode = usePepperStore((s) => s.setMode);
+  const togglePalette = usePepperStore((s) => s.togglePalette);
 
   const batteryTone = battery > 50 ? 'ok' : battery > 20 ? 'warn' : 'danger';
 
@@ -44,6 +45,12 @@ export default function TopBar() {
         <Chip tone={connected ? 'ok' : 'danger'}>{connected ? '● Connected' : '○ Offline'}</Chip>
         <Chip tone={batteryTone}>{battery}%</Chip>
         <Chip tone="muted">{posture}{isMoving ? ' →' : ''}</Chip>
+        <button
+          onClick={togglePalette}
+          aria-label="Open command palette"
+          className="text-[11px] px-2 py-1 rounded-md text-muted bg-surface-2 border border-border
+                     hover:border-border-strong hover:text-text transition-colors"
+        >⌘K</button>
       </div>
     </header>
   );

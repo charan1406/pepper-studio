@@ -18,6 +18,10 @@ export const usePepperStore = create((set) => ({
   mode: 'sim',
   robotBridgeUrl: '',  // set by RobotConnection while a real Pepper is connected
 
+  // ⌘K command palette open state (lifted so the TopBar affordance and the
+  // global hotkey share one source of truth).
+  paletteOpen: false,
+
   // Position
   x: 0.5, y: 0.5, theta: 0,
   isMoving: false,
@@ -129,6 +133,8 @@ export const usePepperStore = create((set) => ({
 
   setMode: (mode) => set({ mode }),
   setRobotBridgeUrl: (robotBridgeUrl) => set({ robotBridgeUrl }),
+  setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
+  togglePalette: () => set((s) => ({ paletteOpen: !s.paletteOpen })),
 }));
 
 

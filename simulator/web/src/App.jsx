@@ -8,6 +8,7 @@ import ChatPopup from './components/ChatPopup';
 import SearchResultPopup from './components/SearchResultPopup';
 import ControlPanel from './components/ControlPanel';
 import TopBar from './components/TopBar';
+import CommandPalette from './components/CommandPalette';
 import { usePepperWebSocket, usePepperStore, useBrowserTTS, useBridgeTarget } from './hooks/usePepperState';
 
 function SpeechOverlay() {
@@ -97,6 +98,7 @@ export default function App() {
       `}</style>
       <TopBar />
       <RealModeBanner />
+      <CommandPalette />
 
       <div className="flex flex-1 min-h-0">
         <ControlPanel />
