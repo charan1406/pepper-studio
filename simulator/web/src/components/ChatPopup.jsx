@@ -96,37 +96,22 @@ function ChatPopup() {
     return (
       <button
         onClick={() => setOpen(true)}
-        style={{
-          position: 'fixed', bottom: '20px', right: '400px',
-          width: '40px', height: '40px', borderRadius: '50%',
-          background: '#2c2c2e', border: '1px solid #3a3a3c',
-          color: '#e5e5e5', fontSize: '18px', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 200,
-        }}
         title="Open chat"
-      >
-        C
-      </button>
+        className="fixed bottom-5 right-[400px] w-10 h-10 rounded-full bg-surface-1 border border-border
+                   text-text text-lg flex items-center justify-center cursor-pointer z-[150] hover:border-border-strong"
+      >C</button>
     );
   }
 
   if (minimized) {
+    const minStyle = position.x !== null
+      ? { top: position.y, left: position.x }
+      : { bottom: '20px', right: '400px' };
     return (
       <button
         onClick={() => setMinimized(false)}
-        style={{
-          position: 'fixed',
-          bottom: position.y !== null ? undefined : '20px',
-          right: position.x !== null ? undefined : '400px',
-          top: position.y !== null ? position.y : undefined,
-          left: position.x !== null ? position.x : undefined,
-          padding: '6px 16px', borderRadius: '20px',
-          background: '#2c2c2e', border: '1px solid #3a3a3c',
-          color: '#e5e5e5', fontSize: '12px', cursor: 'pointer',
-          fontFamily: "-apple-system, 'Segoe UI', Roboto, sans-serif",
-          zIndex: 200,
-        }}
+        style={{ position: 'fixed', ...minStyle }}
+        className="px-4 py-1.5 rounded-full bg-surface-1 border border-border text-text text-xs cursor-pointer z-[150]"
       >
         Chat {messages.length > 0 ? `(${messages.length})` : ''}
       </button>
@@ -140,130 +125,57 @@ function ChatPopup() {
   return (
     <div
       ref={dragRef}
-      style={{
-        position: 'fixed',
-        ...posStyle,
-        width: '320px',
-        height: '420px',
-        background: '#2c2c2e',
-        border: '1px solid #3a3a3c',
-        borderRadius: '10px',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        zIndex: 200,
-        boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
-        fontFamily: "-apple-system, 'Segoe UI', Roboto, sans-serif",
-      }}
+      style={{ position: 'fixed', ...posStyle }}
+      className="w-[320px] h-[420px] bg-surface-1 border border-border rounded-lg flex flex-col overflow-hidden z-[150] shadow-2xl"
     >
-      {/* Header */}
       <div
         onMouseDown={handleDragStart}
-        style={{
-          padding: '10px 14px',
-          borderBottom: '1px solid #3a3a3c',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          cursor: 'grab',
-          userSelect: 'none',
-        }}
+        className="px-3.5 py-2.5 border-b border-border flex items-center justify-between cursor-grab select-none"
       >
-        <span style={{ fontSize: '13px', fontWeight: 600, color: '#e5e5e5' }}>Chat</span>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <span
-            onClick={() => setMinimized(true)}
-            style={{ cursor: 'pointer', color: '#666', fontSize: '14px' }}
-          >—</span>
-          <span
-            onClick={() => setOpen(false)}
-            style={{ cursor: 'pointer', color: '#666', fontSize: '14px' }}
-          >✕</span>
+        <span className="text-[13px] font-semibold text-text">Chat</span>
+        <div className="flex gap-2">
+          <span onClick={() => setMinimized(true)} className="cursor-pointer text-dim hover:text-text text-sm">—</span>
+          <span onClick={() => setOpen(false)} className="cursor-pointer text-dim hover:text-text text-sm">✕</span>
         </div>
       </div>
 
-      {/* Messages */}
-      <div style={{
-        flex: 1, overflowY: 'auto', padding: '10px',
-        display: 'flex', flexDirection: 'column', gap: '8px',
-      }}>
+      <div className="flex-1 overflow-y-auto p-2.5 flex flex-col gap-2">
         {messages.length === 0 && (
-          <div style={{ color: '#666', fontSize: '12px', textAlign: 'center', marginTop: '40px' }}>
-            Say something to Pepper...
-          </div>
+          <div className="text-dim text-xs text-center mt-10">Say something to Pepper...</div>
         )}
         {messages.map((msg, i) => (
-          <div
-            key={i}
-            style={{
-              alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
-              maxWidth: '85%',
-            }}
-          >
-            <div style={{
-              padding: '8px 12px',
-              borderRadius: msg.role === 'user' ? '10px 10px 4px 10px' : '10px 10px 10px 4px',
-              background: msg.role === 'user' ? '#3a3a3c' : '#2a3a2a',
-              color: msg.role === 'user' ? '#e5e5e5' : '#8aba8a',
-              fontSize: '13px',
-              lineHeight: '1.4',
-            }}>
+          <div key={i} className={'max-w-[85%] ' + (msg.role === 'user' ? 'self-end' : 'self-start')}>
+            <div className={'px-3 py-2 text-[13px] leading-relaxed '
+              + (msg.role === 'user'
+                ? 'rounded-[10px_10px_4px_10px] bg-surface-2 text-text'
+                : 'rounded-[10px_10px_10px_4px] bg-ok/10 text-ok')}>
               {msg.text}
             </div>
             {msg.routedTo && (
-              <div style={{ fontSize: '9px', color: '#666', marginTop: '2px', paddingLeft: '4px' }}>
-                via {msg.routedTo}
-              </div>
+              <div className="text-[9px] text-dim mt-0.5 pl-1">via {msg.routedTo}</div>
             )}
           </div>
         ))}
         {chatLoading && (
-          <div style={{
-            alignSelf: 'flex-start',
-            padding: '8px 12px',
-            borderRadius: '10px 10px 10px 4px',
-            background: '#2a3a2a',
-            color: '#8aba8a',
-            fontSize: '13px',
-          }}>
-            ...
-          </div>
+          <div className="self-start px-3 py-2 rounded-[10px_10px_10px_4px] bg-ok/10 text-ok text-[13px]">...</div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      <div style={{ padding: '10px', borderTop: '1px solid #3a3a3c', display: 'flex', gap: '8px' }}>
+      <div className="p-2.5 border-t border-border flex gap-2">
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Type a message..."
-          style={{
-            flex: 1,
-            padding: '8px 12px',
-            background: '#1c1c1e',
-            border: '1px solid #3a3a3c',
-            borderRadius: '6px',
-            color: '#e5e5e5',
-            fontSize: '13px',
-            outline: 'none',
-            fontFamily: 'inherit',
-          }}
+          className="flex-1 rounded-md bg-bg border border-border px-3 py-2 text-[13px] text-text
+                     placeholder:text-dim focus:outline-none focus:border-accent/60 focus:ring-[3px] focus:ring-accent-soft"
         />
         <button
           onClick={sendMessage}
           disabled={chatLoading || !input.trim()}
-          style={{
-            padding: '8px 14px',
-            background: chatLoading || !input.trim() ? '#3a3a3c' : '#8aba8a',
-            border: 'none',
-            borderRadius: '6px',
-            color: chatLoading || !input.trim() ? '#666' : '#1c1c1e',
-            fontSize: '13px',
-            fontWeight: 600,
-            cursor: chatLoading || !input.trim() ? 'default' : 'pointer',
-          }}
+          className="px-3.5 py-2 rounded-md bg-accent text-white text-[13px] font-semibold
+                     hover:bg-accent-hover disabled:bg-surface-2 disabled:text-dim disabled:cursor-default"
         >
           Send
         </button>

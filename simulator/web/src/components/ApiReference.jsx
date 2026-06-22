@@ -3,21 +3,6 @@ import catalog from '../lib/api_catalog.json';
 import { toCurl, toPython } from '../lib/snippets';
 import { getBridgeUrl } from '../lib/bridge';
 
-const S = {
-  overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 300, display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '40px 16px', overflowY: 'auto' },
-  panel: { width: '640px', maxWidth: '100%', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: '10px', fontFamily: "-apple-system, 'Segoe UI', Roboto, sans-serif", color: '#e5e5e5' },
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid #3a3a3c' },
-  title: { fontSize: '15px', fontWeight: 700 },
-  close: { background: 'none', border: 'none', color: '#999', fontSize: '16px', cursor: 'pointer' },
-  section: { fontSize: '10px', fontWeight: 700, color: '#8aba8a', textTransform: 'uppercase', letterSpacing: '1.5px', padding: '14px 18px 4px' },
-  entry: { padding: '8px 18px', borderBottom: '1px solid #333' },
-  sig: { fontSize: '12px', fontFamily: 'monospace' },
-  method: (m) => ({ fontWeight: 700, marginRight: '8px', color: m === 'GET' ? '#8aba8a' : '#d4a847' }),
-  desc: { fontSize: '11px', color: '#999', margin: '2px 0 6px' },
-  body: { fontSize: '10px', fontFamily: 'monospace', color: '#9aa', background: '#1c1c1e', borderRadius: '4px', padding: '4px 6px', margin: '0 0 6px', whiteSpace: 'pre-wrap' },
-  btn: { padding: '3px 8px', background: '#3a3a3c', border: '1px solid #4a4a4c', borderRadius: '5px', color: '#e5e5e5', fontSize: '10px', cursor: 'pointer', marginRight: '6px', fontFamily: 'inherit' },
-};
-
 function Entry({ entry }) {
   const [copied, setCopied] = useState('');
   const copy = async (kind, text) => {
@@ -30,14 +15,22 @@ function Entry({ entry }) {
     }
   };
   const base = getBridgeUrl();
+  const btn = 'px-2 py-1 bg-surface-2 border border-border rounded text-[10px] text-text mr-1.5 hover:border-border-strong';
   return (
-    <div style={S.entry}>
-      <div style={S.sig}><span style={S.method(entry.method)}>{entry.method}</span>{entry.path}</div>
-      <div style={S.desc}>{entry.desc}</div>
-      {entry.body && <pre style={S.body}>{JSON.stringify(entry.body)}</pre>}
-      <button style={S.btn} onClick={() => copy('curl', toCurl(entry, base))}>copy curl</button>
-      <button style={S.btn} onClick={() => copy('py', toPython(entry, base))}>copy Python</button>
-      {copied && <span style={{ fontSize: '10px', color: '#8aba8a' }}>{copied === 'failed' ? 'copy failed' : 'copied!'}</span>}
+    <div className="px-[18px] py-2 border-b border-border">
+      <div className="text-xs font-mono">
+        <span className={'font-bold mr-2 ' + (entry.method === 'GET' ? 'text-ok' : 'text-warn')}>{entry.method}</span>
+        {entry.path}
+      </div>
+      <div className="text-[11px] text-muted my-0.5 mb-1.5">{entry.desc}</div>
+      {entry.body && (
+        <pre className="text-[10px] font-mono text-muted bg-bg rounded px-1.5 py-1 mb-1.5 whitespace-pre-wrap">
+          {JSON.stringify(entry.body)}
+        </pre>
+      )}
+      <button className={btn} onClick={() => copy('curl', toCurl(entry, base))}>copy curl</button>
+      <button className={btn} onClick={() => copy('py', toPython(entry, base))}>copy Python</button>
+      {copied && <span className="text-[10px] text-ok">{copied === 'failed' ? 'copy failed' : 'copied!'}</span>}
     </div>
   );
 }
@@ -45,15 +38,16 @@ function Entry({ entry }) {
 export default function ApiReference({ onClose }) {
   const sections = [...new Set(catalog.map((e) => e.section))];
   return (
-    <div style={S.overlay} onClick={onClose}>
-      <div style={S.panel} onClick={(e) => e.stopPropagation()}>
-        <div style={S.header}>
-          <span style={S.title}>API Reference</span>
-          <button style={S.close} aria-label="Close" onClick={onClose}>✕</button>
+    <div className="fixed inset-0 bg-black/60 z-[300] flex justify-center items-start p-10 overflow-y-auto" onClick={onClose}>
+      <div className="w-[640px] max-w-full bg-surface-1 border border-border rounded-lg text-text" onClick={(e) => e.stopPropagation()}>
+        <div className="flex justify-between items-center px-[18px] py-3.5 border-b border-border">
+          <span className="text-[15px] font-bold">API Reference</span>
+          <button className="bg-transparent border-none text-muted hover:text-text text-base cursor-pointer"
+            aria-label="Close" onClick={onClose}>✕</button>
         </div>
         {sections.map((sec) => (
           <div key={sec}>
-            <div style={S.section}>{sec}</div>
+            <div className="text-[10px] font-bold text-ok uppercase tracking-[1.5px] px-[18px] pt-3.5 pb-1">{sec}</div>
             {catalog.filter((e) => e.section === sec).map((e) => (
               <Entry key={`${e.method} ${e.path}`} entry={e} />
             ))}

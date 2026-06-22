@@ -19,32 +19,10 @@ function SpeechOverlay() {
   if (!isSpeaking || !currentSpeech) return null;
 
   return (
-    <div style={{
-      position: 'absolute',
-      bottom: '80px',
-      left: '50%',
-      transform: 'translateX(-50%)',
-      maxWidth: '500px',
-      padding: '14px 24px',
-      background: 'rgba(44, 44, 46, 0.95)',
-      border: '1px solid #3a3a3c',
-      borderRadius: '10px',
-      fontFamily: "-apple-system, 'Segoe UI', Roboto, sans-serif",
-      fontSize: '15px',
-      color: '#e5e5e5',
-      textAlign: 'center',
-      zIndex: 100,
-      pointerEvents: 'none',
-    }}>
-      <div style={{
-        fontSize: '9px',
-        color: '#999',
-        textTransform: 'uppercase',
-        letterSpacing: '2px',
-        marginBottom: '6px',
-      }}>
-        Speaking ({speechLanguage})
-      </div>
+    <div className="absolute bottom-20 left-1/2 -translate-x-1/2 max-w-[500px] px-6 py-3.5
+                    bg-surface-1/95 border border-border rounded-lg text-[15px] text-text text-center
+                    z-[100] pointer-events-none">
+      <div className="text-[9px] text-muted uppercase tracking-[2px] mb-1.5">Speaking ({speechLanguage})</div>
       "{currentSpeech}"
     </div>
   );
@@ -68,13 +46,7 @@ function RealModeBanner() {
 function LoadingFallback() {
   return (
     <Html center>
-      <div style={{
-        fontFamily: "-apple-system, 'Segoe UI', Roboto, sans-serif",
-        color: '#999',
-        fontSize: '18px',
-      }}>
-        Loading Simulator...
-      </div>
+      <div className="text-muted text-lg whitespace-nowrap">Loading Simulator...</div>
     </Html>
   );
 }
