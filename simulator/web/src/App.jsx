@@ -7,6 +7,7 @@ import Dashboard from './components/Dashboard';
 import ChatPopup from './components/ChatPopup';
 import SearchResultPopup from './components/SearchResultPopup';
 import ControlPanel from './components/ControlPanel';
+import TopBar from './components/TopBar';
 import { usePepperWebSocket, usePepperStore, useBrowserTTS } from './hooks/usePepperState';
 
 function SpeechOverlay() {
@@ -48,54 +49,12 @@ function SpeechOverlay() {
   );
 }
 
-function StatusBar() {
-  const connected = usePepperStore((s) => s.connected);
-  const battery = usePepperStore((s) => s.battery);
-  const posture = usePepperStore((s) => s.posture);
-  const isMoving = usePepperStore((s) => s.isMoving);
-
+function RealModeBanner() {
+  const mode = usePepperStore((s) => s.mode);
+  if (mode !== 'real') return null;
   return (
-    <div style={{
-      position: 'absolute',
-      top: '16px',
-      left: '16px',
-      display: 'flex',
-      gap: '12px',
-      alignItems: 'center',
-      fontFamily: "-apple-system, 'Segoe UI', Roboto, sans-serif",
-      fontSize: '11px',
-      zIndex: 100,
-      pointerEvents: 'none',
-    }}>
-      <div style={{
-        padding: '6px 12px',
-        background: '#2c2c2e',
-        border: '1px solid #3a3a3c',
-        borderRadius: '6px',
-        color: connected ? '#8aba8a' : '#ba8a8a',
-      }}>
-        {connected ? '● CONNECTED' : '○ DISCONNECTED'}
-      </div>
-
-      <div style={{
-        padding: '6px 12px',
-        background: '#2c2c2e',
-        border: '1px solid #3a3a3c',
-        borderRadius: '6px',
-        color: battery > 50 ? '#8aba8a' : battery > 20 ? '#d4a847' : '#ba8a8a',
-      }}>
-        {battery}%
-      </div>
-
-      <div style={{
-        padding: '6px 12px',
-        background: '#2c2c2e',
-        border: '1px solid #3a3a3c',
-        borderRadius: '6px',
-        color: '#999',
-      }}>
-        {posture} {isMoving ? '→' : ''}
-      </div>
+    <div className="flex items-center justify-center gap-2 h-7 bg-danger/15 border-b border-danger/30 text-danger text-xs font-medium shrink-0">
+      ⚠ Real-robot mode — control commands drive a physical Pepper. Keep the e-stop within reach.
     </div>
   );
 }
@@ -119,7 +78,7 @@ export default function App() {
   useBrowserTTS();
 
   return (
-    <div style={{ display: 'flex', width: '100vw', height: '100vh', background: '#1c1c1e' }}>
+    <div className="flex flex-col w-screen h-screen bg-bg">
       <style>{`
         @keyframes slideInRight {
           from { transform: translateX(100px); opacity: 0; }
@@ -130,55 +89,45 @@ export default function App() {
           to { width: 0%; }
         }
       `}</style>
-      <ControlPanel />
-      {/* 3D Viewport */}
-      <div style={{ flex: 1, position: 'relative' }}>
-        <Canvas
-          camera={{ position: [3, 4, 6], fov: 50, near: 0.1, far: 100 }}
-          shadows
-          gl={{ antialias: true }}
-          style={{ background: '#1c1c1e' }}
-        >
-          <Suspense fallback={<LoadingFallback />}>
-            <Room />
-            <PepperModel />
-          </Suspense>
+      <TopBar />
+      <RealModeBanner />
 
-          <OrbitControls
-            enableDamping
-            dampingFactor={0.05}
-            maxPolarAngle={Math.PI / 2.1}
-            minDistance={2}
-            maxDistance={15}
-            target={[0, 0.5, 0]}
-          />
+      <div className="flex flex-1 min-h-0">
+        <ControlPanel />
+        {/* 3D Viewport */}
+        <div className="flex-1 relative">
+          <Canvas
+            camera={{ position: [3, 4, 6], fov: 50, near: 0.1, far: 100 }}
+            shadows
+            gl={{ antialias: true }}
+            style={{ background: '#1c1c1e' }}
+          >
+            <Suspense fallback={<LoadingFallback />}>
+              <Room />
+              <PepperModel />
+            </Suspense>
 
-          {/* Fog for atmosphere */}
-          <fog attach="fog" args={['#1c1c1e', 8, 20]} />
-        </Canvas>
+            <OrbitControls
+              enableDamping
+              dampingFactor={0.05}
+              maxPolarAngle={Math.PI / 2.1}
+              minDistance={2}
+              maxDistance={15}
+              target={[0, 0.5, 0]}
+            />
 
-        <StatusBar />
-        <SpeechOverlay />
-        <ChatPopup />
-        <SearchResultPopup />
+            {/* Fog for atmosphere */}
+            <fog attach="fog" args={['#1c1c1e', 8, 20]} />
+          </Canvas>
 
-        {/* Title watermark */}
-        <div style={{
-          position: 'absolute',
-          bottom: '16px',
-          left: '16px',
-          fontFamily: "-apple-system, 'Segoe UI', Roboto, sans-serif",
-          fontSize: '11px',
-          color: '#3a3a3c',
-          zIndex: 100,
-          pointerEvents: 'none',
-        }}>
-          PEPPER AI × SIMULATOR v1.0
+          <SpeechOverlay />
+          <ChatPopup />
+          <SearchResultPopup />
         </div>
-      </div>
 
-      {/* Dashboard */}
-      <Dashboard />
+        {/* Dashboard */}
+        <Dashboard />
+      </div>
     </div>
   );
 }

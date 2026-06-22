@@ -10,6 +10,11 @@ export const usePepperStore = create((set) => ({
   serverTts: false,   // bridge plays audio via Piper → browser TTS stays silent
   state: null,
 
+  // Bridge target: 'sim' (localhost simulator) or 'real' (a physical Pepper).
+  // Presentational today (drives the safety banner); the next slice points the
+  // bridge URL at the real robot when this flips.
+  mode: 'sim',
+
   // Position
   x: 0.5, y: 0.5, theta: 0,
   isMoving: false,
@@ -118,6 +123,8 @@ export const usePepperStore = create((set) => ({
   })),
 
   setDisconnected: () => set({ connected: false }),
+
+  setMode: (mode) => set({ mode }),
 }));
 
 
