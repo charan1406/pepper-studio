@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   moveVelocity, stopMove, setPosture, speak, stopSpeak,
   setEyeColor, listAnimations, runAnimation, setHead,
@@ -7,6 +7,7 @@ import {
 import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, RotateCcw, RotateCw, Settings } from 'lucide-react';
 import { usePepperStore } from '../hooks/usePepperState';
 import VoicePanel from './VoicePanel';
+import EyeColorControl from './EyeColorControl';
 
 function Section({ title, aside, children }) {
   return (
@@ -74,12 +75,18 @@ export default function ControlPanel() {
     if (t) speak(t);
   };
 
+  // Live swatch updates instantly; the bridge POST is debounced so dragging
+  // the wheel doesn't flood /leds/eyes.
+  const eyeTimer = useRef(null);
   const onEyeChange = (hex) => {
     setEye(hex);
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    setEyeColor(r, g, b);
+    clearTimeout(eyeTimer.current);
+    eyeTimer.current = setTimeout(() => {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      setEyeColor(r, g, b);
+    }, 90);
   };
 
   return (
@@ -153,11 +160,7 @@ export default function ControlPanel() {
       <Section title="Voice"><VoicePanel /></Section>
 
       <Section title="Eyes">
-        <div className="flex items-center gap-3">
-          <input type="color" value={eye} onChange={(e) => onEyeChange(e.target.value)}
-            className="w-11 h-9 bg-transparent border border-white/10 rounded-md cursor-pointer" />
-          <span className="hmi-engrave text-sm font-mono">{eye}</span>
-        </div>
+        <EyeColorControl value={eye} onChange={onEyeChange} />
       </Section>
 
       <Section title="Animation">
