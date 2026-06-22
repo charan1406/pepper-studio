@@ -8,10 +8,10 @@ import ServicesPanel from './ServicesPanel';
 
 function Group({ title, hint, children }) {
   return (
-    <section className="px-5 py-4 border-b border-border">
-      <h3 className="text-[11px] font-semibold text-text tracking-wide">{title}</h3>
-      {hint && <p className="text-[11px] text-dim mt-0.5 mb-2.5 leading-relaxed">{hint}</p>}
-      <div className={hint ? '' : 'mt-2.5'}>{children}</div>
+    <section className="px-6 py-5 border-b border-border">
+      <h3 className="text-[13px] font-semibold text-text tracking-wide">{title}</h3>
+      {hint && <p className="text-[11px] text-dim mt-1 mb-3.5 leading-relaxed">{hint}</p>}
+      <div className={hint ? '' : 'mt-3.5'}>{children}</div>
     </section>
   );
 }
@@ -38,10 +38,10 @@ export default function SettingsDrawer() {
       />
       <aside
         aria-label="Setup"
-        className={'fixed top-0 right-0 h-full w-[360px] max-w-full bg-surface-1 border-l border-border-strong z-[211] '
+        className={'fixed top-0 right-0 h-full w-[392px] max-w-full bg-surface-1 border-l border-border-strong z-[211] '
           + 'flex flex-col transition-transform duration-200 ' + (open ? 'translate-x-0' : 'translate-x-full')}
       >
-        <header className="flex items-center justify-between px-5 h-12 border-b border-border shrink-0">
+        <header className="flex items-center justify-between px-6 h-14 border-b border-border shrink-0">
           <span className="text-sm font-semibold text-text">Setup</span>
           <button onClick={() => setOpen(false)} aria-label="Close setup"
             className="text-muted hover:text-text text-base">✕</button>
