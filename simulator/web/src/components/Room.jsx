@@ -250,16 +250,18 @@ export default function Room() {
       <OakFloor />
       <Walls />
 
-      {/* Lounge arrangement — keep the centre clear for Pepper */}
-      <Rug position={[-0.6, -0.245, -1.2]} />
-      <Sofa position={[-0.6, -0.25, -2.3]} />
-      <CoffeeTable position={[-0.6, -0.25, -1.2]} />
-      <Kallax position={[-3.75, -0.25, 0.6]} rotation={[0, Math.PI / 2, 0]} />
-      <FloorLamp position={[-2.5, -0.25, -2.4]} />
-      <Plant position={[3.0, -0.25, -2.3]} scale={1.15} />
-      <Plant position={[-3.4, -0.25, -2.4]} scale={0.85} />
-      <MediaUnit position={[1.7, -0.25, -2.7]} />
-      <Plant position={[2.9, -0.25, 1.6]} scale={0.95} />
+      {/* Lounge tucked into the back-left so the centre + front floor stay
+          clear for Pepper. (The sim has no collision — keep props off the
+          walkable middle; the minimap mirrors these footprints.) */}
+      <Rug position={[-1.5, -0.245, -2.05]} />
+      <Sofa position={[-1.5, -0.25, -2.55]} />
+      <CoffeeTable position={[-1.5, -0.25, -1.75]} />
+      <Kallax position={[-3.75, -0.25, 0.9]} rotation={[0, Math.PI / 2, 0]} />
+      <FloorLamp position={[-3.1, -0.25, -2.45]} />
+      <Plant position={[3.4, -0.25, -2.5]} scale={1.15} />
+      <Plant position={[-3.45, -0.25, -2.5]} scale={0.8} />
+      <MediaUnit position={[1.9, -0.25, -2.7]} />
+      <Plant position={[3.3, -0.25, 2.2]} scale={0.95} />
 
       {/* Lighting — soft, warm, Scandinavian daylight */}
       <hemisphereLight args={['#fff6e8', '#6b5a44', 0.65]} />

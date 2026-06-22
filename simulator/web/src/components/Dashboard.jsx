@@ -33,30 +33,46 @@ function LampRow({ on, red, label, value }) {
   );
 }
 
+// Top-down floorplan in metres (room is 8 x 6). Footprints mirror the props
+// in Room.jsx — keep the two in sync if the lounge layout changes. Rects are
+// [cx, cy, w, h]; circles [cx, cy, r].
+const FURNITURE = {
+  rects: [
+    [2.5, 0.45, 2.2, 0.9],   // sofa
+    [5.9, 0.3, 1.6, 0.4],    // media unit
+    [0.25, 3.9, 0.4, 1.05],  // kallax shelf
+  ],
+  circles: [
+    [2.5, 1.25, 0.52],       // coffee table
+    [0.9, 0.55, 0.18],       // floor lamp
+    [7.4, 0.5, 0.22], [0.55, 0.5, 0.18], [7.3, 5.2, 0.22], // plants
+  ],
+  rug: [2.5, 0.95, 3.2, 2.3],
+};
+
 function MiniMap() {
   const x = usePepperStore((s) => s.x);
   const y = usePepperStore((s) => s.y);
   const theta = usePepperStore((s) => s.theta);
-  const roomObjects = usePepperStore((s) => s.roomObjects);
-
-  const mapW = 340;
-  const mapH = 70;
-  const scaleX = mapW / 8;
-  const scaleY = mapH / 6;
+  const [rcx, rcy, rw, rh] = FURNITURE.rug;
+  const hx = x + Math.cos(theta) * 0.55;
+  const hy = y - Math.sin(theta) * 0.55;
 
   return (
-    <div className="hmi-glass w-full h-[70px] rounded relative overflow-hidden">
-      <svg width="100%" height={mapH} viewBox={`0 0 ${mapW} ${mapH}`} preserveAspectRatio="none">
-        {Object.entries(roomObjects).map(([name, obj]) => (
-          <circle key={name} cx={obj.x * scaleX} cy={mapH - obj.y * scaleY} r={3} fill="#2c4a38" />
+    <div className="hmi-glass w-full h-[120px] rounded overflow-hidden">
+      <svg width="100%" height="100%" viewBox="0 0 8 6" preserveAspectRatio="xMidYMid meet">
+        <rect x={0.04} y={0.04} width={7.92} height={5.92} fill="none" stroke="#1e3a2a" strokeWidth={0.06} />
+        <rect x={rcx - rw / 2} y={rcy - rh / 2} width={rw} height={rh} fill="#13251b" />
+        {FURNITURE.rects.map(([cx, cy, w, h], i) => (
+          <rect key={i} x={cx - w / 2} y={cy - h / 2} width={w} height={h} rx={0.06}
+            fill="#274a37" stroke="#356b4e" strokeWidth={0.03} />
         ))}
-        <circle cx={x * scaleX} cy={mapH - y * scaleY} r={5} fill="#34d8c8" stroke="#6cf39a" strokeWidth={1} />
-        <line
-          x1={x * scaleX} y1={mapH - y * scaleY}
-          x2={x * scaleX + Math.cos(-theta + Math.PI / 2) * 12}
-          y2={mapH - y * scaleY - Math.sin(-theta + Math.PI / 2) * 12}
-          stroke="#6cf39a" strokeWidth={2}
-        />
+        {FURNITURE.circles.map(([cx, cy, r], i) => (
+          <circle key={i} cx={cx} cy={cy} r={r} fill="#274a37" stroke="#356b4e" strokeWidth={0.03} />
+        ))}
+        {/* Pepper + heading */}
+        <line x1={x} y1={y} x2={hx} y2={hy} stroke="#6cf39a" strokeWidth={0.08} strokeLinecap="round" />
+        <circle cx={x} cy={y} r={0.22} fill="#34d8c8" stroke="#6cf39a" strokeWidth={0.04} />
       </svg>
     </div>
   );
