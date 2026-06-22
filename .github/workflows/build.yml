@@ -2,14 +2,16 @@ name: Build packaged app
 
 # PyInstaller cannot cross-compile, so each OS artifact is built on its own
 # runner. Produces an onedir "localhost app" per OS (bridge + prebuilt web UI).
-# Ships NO model weights and NO inference binary (see CLAUDE.md).
+# Ships NO model weights and NO inference binary (see CLAUDE.md). Both builds
+# carry voice (STT); "full" only adds the bundle.json marker that flips on the
+# first-run LLM provisioning UI.
 
 on:
   workflow_dispatch:        # manual: Actions tab -> Run workflow
   pull_request:
     branches: [main]        # verify the build on every PR to main
   push:
-    tags: ['v*']            # auto-build on version tags (e.g. v0.1.0)
+    tags: ['v*']            # auto-build + publish a Release on version tags (e.g. v0.1.0)
 
 jobs:
   build:
@@ -19,7 +21,7 @@ jobs:
       fail-fast: false      # one OS/bundle failing must not cancel the others
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        bundle: [lean, voice]   # lean = control hub; voice = + in-app STT (faster-whisper)
+        bundle: [lean, full]   # lean = BYO LLM; full = + first-run llama.cpp/GGUF auto-download
     steps:
       - uses: actions/checkout@v4
 
@@ -42,8 +44,8 @@ jobs:
       - name: Install build deps
         shell: bash      # available on the Windows runner too (Git Bash)
         run: |
-          python -m pip install --upgrade pip pyinstaller websockets paramiko
-          if [ "${{ matrix.bundle }}" = "voice" ]; then python -m pip install faster-whisper; fi
+          # Both builds carry voice (STT) + robot connection — same dep set.
+          python -m pip install --upgrade pip pyinstaller websockets paramiko faster-whisper
 
       - name: Build onedir bundle (${{ matrix.bundle }})
         shell: bash
@@ -52,7 +54,7 @@ jobs:
       - name: Smoke test (launch + serve)
         shell: bash
         run: |
-          NAME="pepper-studio"; [ "${{ matrix.bundle }}" = "voice" ] && NAME="pepper-studio-voice"
+          NAME="pepper-studio"; [ "${{ matrix.bundle }}" = "full" ] && NAME="pepper-studio-full"
           if [ "$RUNNER_OS" = "Windows" ]; then BIN="dist/$NAME/$NAME.exe"; else BIN="dist/$NAME/$NAME"; fi
           SIM_OPEN_BROWSER=0 "$BIN" & PID=$!
           code=$(curl -s --retry 30 --retry-delay 1 --retry-connrefused -o /dev/null -w "%{http_code}" http://localhost:5001/ai/config || true)
@@ -60,8 +62,43 @@ jobs:
           echo "smoke ($NAME): GET /ai/config -> $code"
           [ "$code" = "200" ]
 
+      - name: Package artifact (zip)
+        shell: bash
+        run: |
+          NAME="pepper-studio"; [ "${{ matrix.bundle }}" = "full" ] && NAME="pepper-studio-full"
+          ARCHIVE="${NAME}-${RUNNER_OS}.zip"
+          cd dist
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            7z a "../$ARCHIVE" "$NAME" >/dev/null
+          else
+            zip -r "../$ARCHIVE" "$NAME" >/dev/null
+          fi
+          echo "ARCHIVE=$ARCHIVE" >> "$GITHUB_ENV"
+
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.bundle == 'voice' && 'pepper-studio-voice' || 'pepper-studio' }}-${{ runner.os }}
-          path: dist/${{ matrix.bundle == 'voice' && 'pepper-studio-voice' || 'pepper-studio' }}
+          name: ${{ matrix.bundle == 'full' && 'pepper-studio-full' || 'pepper-studio' }}-${{ runner.os }}
+          path: ${{ env.ARCHIVE }}
           if-no-files-found: error
+
+  # On a version tag, gather every OS/bundle zip and publish a GitHub Release.
+  # No code-signing — the README documents the first-launch OS prompts.
+  release:
+    name: Publish Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true   # flatten all matrix zips into one dir
+
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*.zip
+          generate_release_notes: true
+          fail_on_unmatched_files: true
