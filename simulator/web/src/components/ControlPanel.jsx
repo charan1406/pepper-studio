@@ -4,16 +4,15 @@ import {
   setEyeColor, listAnimations, runAnimation, setHead,
   POSTURES, HEAD_LIMITS,
 } from '../lib/bridge';
-import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, RotateCcw, RotateCw, Square, Settings } from 'lucide-react';
-import { Button, Input } from '../design';
+import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, RotateCcw, RotateCw, Settings } from 'lucide-react';
 import { usePepperStore } from '../hooks/usePepperState';
 import VoicePanel from './VoicePanel';
 
 function Section({ title, aside, children }) {
   return (
-    <section className="px-5 py-5 border-b border-border">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-[11px] font-semibold text-dim uppercase tracking-[1.6px]">{title}</h3>
+    <section className="px-5 py-4 border-b border-[#9a9da0]">
+      <div className="flex items-center justify-between mb-3.5">
+        <h3 className="hmi-engrave text-[11px] font-bold uppercase tracking-[2px]">{title}</h3>
         {aside}
       </div>
       {children}
@@ -21,25 +20,33 @@ function Section({ title, aside, children }) {
   );
 }
 
-// A directional pad cell. Press-and-hold drives; release stops. The center
-// cell is a hard stop. aria-labels keep the controls findable + accessible.
-function PadButton({ label, icon: Icon, vx, vy, vtheta, stop }) {
-  const base = 'h-14 flex items-center justify-center rounded-lg select-none transition-colors '
-    + 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50';
-  if (stop) {
-    return (
-      <button aria-label="Stop" onClick={() => stopMove()}
-        className={base + ' bg-danger/10 border border-danger/30 text-danger hover:bg-danger/20'}>
-        <Icon size={18} fill="currentColor" />
-      </button>
-    );
-  }
+function MetalBtn({ go, className = '', ...props }) {
+  return (
+    <button
+      className={'hmi-key ' + (go ? 'hmi-key-go ' : '') + 'px-3 py-2.5 text-[13px] font-semibold ' + className}
+      {...props}
+    />
+  );
+}
+
+// D-pad cell — press-and-hold drives, release stops. aria-labels keep the
+// controls findable + accessible.
+function PadKey({ label, icon: Icon, vx, vy, vtheta }) {
   return (
     <button aria-label={label}
       onMouseDown={() => moveVelocity(vx, vy, vtheta)} onMouseUp={() => stopMove()} onMouseLeave={() => stopMove()}
-      className={base + ' bg-surface-2 border border-border text-muted hover:text-text hover:border-accent/60 active:bg-accent/15 active:border-accent active:text-accent'}>
+      className="hmi-key-dark h-14 flex items-center justify-center">
       <Icon size={22} />
     </button>
+  );
+}
+
+function EStop() {
+  return (
+    <div className="hmi-estop-ring rounded-full p-2.5">
+      <button aria-label="Stop" onClick={() => stopMove()}
+        className="hmi-estop w-[88px] h-[88px] rounded-full text-sm">STOP</button>
+    </div>
   );
 }
 
@@ -75,88 +82,95 @@ export default function ControlPanel() {
     setEyeColor(r, g, b);
   };
 
-  const selectCls = 'w-full rounded-md bg-surface-1 border border-border px-3.5 py-2.5 text-sm text-text '
-    + 'focus:outline-none focus:border-accent/60 focus:ring-[3px] focus:ring-accent-soft';
-
   return (
-    <div className="w-[348px] h-full bg-surface-1 border-r border-border flex flex-col overflow-y-auto">
-      <header className="flex items-center justify-between px-5 h-14 border-b border-border shrink-0">
-        <span className="text-sm font-semibold text-text">Manual Control</span>
+    <div className="hmi-panel w-[348px] h-full border-r border-[#86898c] flex flex-col">
+      <header className="hmi-plate flex items-center justify-between px-5 h-14 border-b border-[#9a9da0] shrink-0">
+        <span className="hmi-engrave text-[13px] font-bold uppercase tracking-[2px]">Manual Control</span>
         <button onClick={toggleSettings} aria-label="Open setup"
-          className="w-7 h-7 flex items-center justify-center rounded-md text-muted hover:text-text hover:bg-surface-2">
+          className="hmi-key w-8 h-8 flex items-center justify-center rounded-md">
           <Settings size={15} />
         </button>
       </header>
 
-      <Section title="Move" aside={<span className="text-[11px] text-dim">hold to drive</span>}>
-        <div className="grid grid-cols-3 gap-2.5">
-          <PadButton label="Rotate left" icon={RotateCcw} vx={0} vy={0} vtheta={1} />
-          <PadButton label="Forward" icon={ArrowUp} vx={1} vy={0} vtheta={0} />
-          <PadButton label="Rotate right" icon={RotateCw} vx={0} vy={0} vtheta={-1} />
-          <PadButton label="Left" icon={ArrowLeft} vx={0} vy={1} vtheta={0} />
-          <PadButton stop icon={Square} />
-          <PadButton label="Right" icon={ArrowRight} vx={0} vy={-1} vtheta={0} />
-          <span />
-          <PadButton label="Back" icon={ArrowDown} vx={-1} vy={0} vtheta={0} />
-          <span />
+      {/* Distribute the sections down the full height so the panel fills edge
+          to edge instead of stacking at the top with dead space below. */}
+      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col justify-between">
+      <Section title="Drive" aside={<span className="hmi-engrave text-[11px] opacity-70">hold to move</span>}>
+        <div className="flex gap-4 items-center">
+          <div className="grid grid-cols-3 gap-2 flex-1">
+            <PadKey label="Rotate left" icon={RotateCcw} vx={0} vy={0} vtheta={1} />
+            <PadKey label="Forward" icon={ArrowUp} vx={1} vy={0} vtheta={0} />
+            <PadKey label="Rotate right" icon={RotateCw} vx={0} vy={0} vtheta={-1} />
+            <PadKey label="Left" icon={ArrowLeft} vx={0} vy={1} vtheta={0} />
+            <span />
+            <PadKey label="Right" icon={ArrowRight} vx={0} vy={-1} vtheta={0} />
+            <span />
+            <PadKey label="Back" icon={ArrowDown} vx={-1} vy={0} vtheta={0} />
+            <span />
+          </div>
+          <EStop />
         </div>
       </Section>
 
       <Section title="Posture">
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2.5">
           {POSTURES.map((p) => (
-            <Button key={p} variant="secondary" onClick={() => setPosture(p, 0.5)}>{p}</Button>
+            <MetalBtn key={p} onClick={() => setPosture(p, 0.5)}>{p}</MetalBtn>
           ))}
         </div>
       </Section>
 
       <Section title="Head">
-        <div className="flex flex-col gap-2 mb-4 text-sm text-muted">
-          <div className="flex justify-between"><span>Yaw</span><span className="font-mono text-text">{yaw.toFixed(2)}</span></div>
-          <input type="range" className="accent-[var(--color-accent)]"
-            min={HEAD_LIMITS.yaw[0]} max={HEAD_LIMITS.yaw[1]} step={0.01} value={yaw}
-            onChange={(e) => { const v = parseFloat(e.target.value); setYaw(v); setHead(v, pitch); }} />
+        <div className="grid grid-cols-2 gap-2.5 mb-3">
+          <div className="hmi-lcd px-3 py-2 flex items-baseline justify-between">
+            <span className="text-[9px] opacity-70 tracking-widest">YAW</span>
+            <span className="text-[15px]">{yaw.toFixed(2)}</span>
+          </div>
+          <div className="hmi-lcd px-3 py-2 flex items-baseline justify-between">
+            <span className="text-[9px] opacity-70 tracking-widest">PITCH</span>
+            <span className="text-[15px]">{pitch.toFixed(2)}</span>
+          </div>
         </div>
-        <div className="flex flex-col gap-2 mb-4 text-sm text-muted">
-          <div className="flex justify-between"><span>Pitch</span><span className="font-mono text-text">{pitch.toFixed(2)}</span></div>
-          <input type="range" className="accent-[var(--color-accent)]"
-            min={HEAD_LIMITS.pitch[0]} max={HEAD_LIMITS.pitch[1]} step={0.01} value={pitch}
-            onChange={(e) => { const v = parseFloat(e.target.value); setPitch(v); setHead(yaw, v); }} />
-        </div>
-        <Button variant="secondary" className="w-full"
-          onClick={() => { setYaw(0); setPitch(0); setHead(0, 0); }}>Center</Button>
+        <input type="range" className="w-full accent-[#2c9c84] mb-3"
+          min={HEAD_LIMITS.yaw[0]} max={HEAD_LIMITS.yaw[1]} step={0.01} value={yaw}
+          onChange={(e) => { const v = parseFloat(e.target.value); setYaw(v); setHead(v, pitch); }} />
+        <input type="range" className="w-full accent-[#2c9c84] mb-4"
+          min={HEAD_LIMITS.pitch[0]} max={HEAD_LIMITS.pitch[1]} step={0.01} value={pitch}
+          onChange={(e) => { const v = parseFloat(e.target.value); setPitch(v); setHead(yaw, v); }} />
+        <MetalBtn className="w-full" onClick={() => { setYaw(0); setPitch(0); setHead(0, 0); }}>Center</MetalBtn>
       </Section>
 
       <Section title="Speak">
-        <Input className="w-full mb-2.5" value={text} placeholder="Say something..."
+        <input className="hmi-field w-full px-3 py-2.5 text-sm mb-2.5" value={text} placeholder="Say something..."
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') onSpeak(); }} />
-        <div className="grid grid-cols-2 gap-2">
-          <Button onClick={onSpeak}>Speak</Button>
-          <Button variant="secondary" onClick={() => stopSpeak()}>Stop</Button>
+        <div className="grid grid-cols-2 gap-2.5">
+          <MetalBtn go onClick={onSpeak}>Speak</MetalBtn>
+          <MetalBtn onClick={() => stopSpeak()}>Stop</MetalBtn>
         </div>
       </Section>
 
       <Section title="Voice"><VoicePanel /></Section>
 
       <Section title="Eyes">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <input type="color" value={eye} onChange={(e) => onEyeChange(e.target.value)}
-            className="w-10 h-8 bg-transparent border border-border rounded-md cursor-pointer" />
-          <span className="text-dim text-sm font-mono">{eye}</span>
+            className="w-11 h-9 bg-transparent border border-[#9a9fa3] rounded-md cursor-pointer" />
+          <span className="hmi-engrave text-sm font-mono">{eye}</span>
         </div>
       </Section>
 
       <Section title="Animation">
-        <select className={selectCls + ' mb-2.5'} value={selectedAnim}
+        <select className="hmi-field w-full px-3 py-2.5 text-sm mb-2.5" value={selectedAnim}
           onChange={(e) => setSelectedAnim(e.target.value)}>
           {animations.map((a) => (
             <option key={a} value={a}>{a.split('/').pop()}</option>
           ))}
         </select>
-        <Button className="w-full" disabled={!selectedAnim}
-          onClick={() => selectedAnim && runAnimation(selectedAnim)}>Run</Button>
+        <MetalBtn go className="w-full" disabled={!selectedAnim}
+          onClick={() => selectedAnim && runAnimation(selectedAnim)}>Run</MetalBtn>
       </Section>
+      </div>
     </div>
   );
 }

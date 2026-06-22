@@ -47,3 +47,74 @@ body {
 *::-webkit-scrollbar { width: 9px; height: 9px; }
 *::-webkit-scrollbar-thumb { background: var(--color-surface-2); border-radius: 6px; }
 *::-webkit-scrollbar-thumb:hover { background: var(--color-border-strong); }
+
+/* ── Industrial HMI theme (teach-pendant / FANUC-style control panel) ── */
+.hmi-panel {
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 1px, rgba(0,0,0,.025) 1px 3px),
+    linear-gradient(157deg, #dcdee0 0%, #c3c6c9 52%, #abaeb1 100%);
+}
+.hmi-engrave { color: #3c4043; text-shadow: 0 1px 0 rgba(255,255,255,.75); }
+.hmi-plate {
+  background: linear-gradient(180deg, #b7babd, #c9cccf);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.7), inset 0 -1px 0 rgba(0,0,0,.18);
+}
+
+/* Physical keycap */
+.hmi-key {
+  background: linear-gradient(180deg, #fcfcfd, #ccced1);
+  border: 1px solid #9a9fa3; border-radius: 7px; color: #24272a;
+  text-shadow: 0 1px 0 rgba(255,255,255,.7);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.95), inset 0 -2px 3px rgba(0,0,0,.10), 0 2px 3px rgba(0,0,0,.32);
+  transition: transform .04s ease, box-shadow .04s ease, background .1s;
+}
+.hmi-key:hover { background: linear-gradient(180deg, #ffffff, #d4d6d9); }
+.hmi-key:active { transform: translateY(1px); box-shadow: inset 0 2px 5px rgba(0,0,0,.28), 0 1px 1px rgba(0,0,0,.25); }
+.hmi-key:disabled { opacity: .5; }
+.hmi-key-go { background: linear-gradient(180deg, #c8f7d8, #7fd79b); border-color: #4e9e6c; color: #103d23; }
+.hmi-key-go:hover { background: linear-gradient(180deg, #d6ffe4, #86e0a3); }
+
+/* Dark keycap (D-pad) */
+.hmi-key-dark {
+  background: linear-gradient(180deg, #50545a, #2b2e33);
+  border: 1px solid #191b1e; border-radius: 8px; color: #dfe2e5;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.14), 0 2px 3px rgba(0,0,0,.45);
+  transition: transform .04s ease, box-shadow .04s ease;
+}
+.hmi-key-dark:hover { background: linear-gradient(180deg, #5a5f65, #34373c); color: #fff; }
+.hmi-key-dark:active { transform: translateY(1px); box-shadow: inset 0 3px 6px rgba(0,0,0,.6); color: var(--color-accent); }
+
+/* Recessed light data field */
+.hmi-field {
+  background: #eceeef; border: 1px solid #9a9fa3; border-radius: 5px; color: #1f2225;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,.18);
+}
+.hmi-field::placeholder { color: #8c9094; }
+.hmi-field:focus { outline: none; border-color: #5fb0c2; box-shadow: inset 0 2px 4px rgba(0,0,0,.18), 0 0 0 3px rgba(52,216,200,.25); }
+
+/* LCD readout window */
+.hmi-lcd {
+  background: #07140d; border: 1px solid #0b2415; border-radius: 4px;
+  box-shadow: inset 0 2px 8px rgba(0,0,0,.85), 0 1px 0 rgba(255,255,255,.45);
+  color: #6cf39a; text-shadow: 0 0 6px rgba(108,243,154,.55);
+  font-family: var(--font-mono);
+}
+
+/* Recessed bezel (frames the live view / displays) */
+.hmi-bezel {
+  background: linear-gradient(180deg, #34373a, #1d1f21);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.14), inset 0 0 0 1px rgba(0,0,0,.4), 0 2px 5px rgba(0,0,0,.5);
+}
+
+/* Emergency stop — mushroom dome in a bezel ring */
+.hmi-estop {
+  background: radial-gradient(circle at 50% 32%, #ff7164 0%, #e02414 55%, #9c1308 100%);
+  border: none; color: #fff; font-weight: 800; letter-spacing: .5px;
+  box-shadow: inset 0 2px 5px rgba(255,255,255,.4), inset 0 -6px 12px rgba(0,0,0,.45), 0 3px 6px rgba(0,0,0,.5);
+  transition: transform .05s ease, box-shadow .05s ease;
+}
+.hmi-estop:active { transform: translateY(2px); box-shadow: inset 0 5px 12px rgba(0,0,0,.55); }
+.hmi-estop-ring {
+  background: radial-gradient(circle at 50% 40%, #3a3c3e, #1c1d1f);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 2px 5px rgba(0,0,0,.5);
+}
