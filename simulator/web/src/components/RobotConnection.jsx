@@ -1,16 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getRobotStatus, connectRobot, disconnectRobot } from '../lib/bridge';
 import { usePepperStore } from '../hooks/usePepperState';
+import { Button } from '../design';
 
-const S = {
-  input: { width: '100%', padding: '8px 10px', background: '#1c1c1e', border: '1px solid #3a3a3c', borderRadius: '6px', color: '#e5e5e5', fontSize: '12px', outline: 'none', fontFamily: 'inherit', marginBottom: '6px', boxSizing: 'border-box' },
-  btn: { padding: '8px 10px', background: '#3a3a3c', border: '1px solid #4a4a4c', borderRadius: '6px', color: '#e5e5e5', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit' },
-  primary: { padding: '8px 12px', background: '#8aba8a', border: 'none', borderRadius: '6px', color: '#1c1c1e', fontSize: '12px', fontWeight: 600, cursor: 'pointer' },
-  grid2: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' },
-  log: { marginTop: '8px', height: '110px', overflowY: 'auto', background: '#0e0e10', border: '1px solid #3a3a3c', borderRadius: '6px', padding: '6px', fontSize: '10px', fontFamily: 'monospace', color: '#9aa', whiteSpace: 'pre-wrap' },
-  badge: (s) => ({ fontSize: '10px', fontWeight: 600, color: s === 'connected' ? '#8aba8a' : s === 'error' ? '#ba8a8a' : '#d4a847' }),
-  note: { fontSize: '10px', color: '#666', marginTop: '6px' },
-};
+const FIELD = 'w-full rounded-md bg-surface-1 border border-border px-2.5 py-2 text-xs text-text '
+  + 'placeholder:text-dim focus:outline-none focus:border-accent/60 focus:ring-[3px] focus:ring-accent-soft';
+
+const STATE_TONE = { connected: 'text-ok', error: 'text-danger', connecting: 'text-warn', disconnected: 'text-muted' };
 
 export default function RobotConnection() {
   const [host, setHost] = useState('');
@@ -55,28 +51,29 @@ export default function RobotConnection() {
   const needsPassword = status.state !== 'connected';
 
   return (
-    <div style={{ marginTop: '10px' }}>
-      <input style={S.input} value={host} placeholder="robot IP (e.g. 192.168.1.17)"
+    <div className="mt-2.5 space-y-1.5">
+      <input className={FIELD} value={host} placeholder="robot IP (e.g. 192.168.1.17)"
         onChange={(e) => setHost(e.target.value)} />
-      <div style={S.grid2}>
-        <input style={S.input} value={user} placeholder="ssh user"
-          onChange={(e) => setUser(e.target.value)} />
+      <div className="grid grid-cols-2 gap-1.5">
+        <input className={FIELD} value={user} placeholder="ssh user" onChange={(e) => setUser(e.target.value)} />
         {needsPassword && (
-          <input style={S.input} type="password" value={password} placeholder="password (first time only)"
+          <input className={FIELD} type="password" value={password} placeholder="password (first time only)"
             onChange={(e) => setPassword(e.target.value)} />
         )}
       </div>
-      <div style={S.grid2}>
-        <button style={S.primary} onClick={onConnect} disabled={!host || status.state === 'connecting'}>Connect</button>
-        <button style={S.btn} onClick={onDisconnect}>Disconnect</button>
+      <div className="grid grid-cols-2 gap-1.5">
+        <Button onClick={onConnect} disabled={!host || status.state === 'connecting'}>Connect</Button>
+        <Button variant="secondary" onClick={onDisconnect}>Disconnect</Button>
       </div>
-      <div style={{ marginTop: '6px' }}>
-        <span style={S.badge(status.state)}>● {status.state}</span>
-        {status.battery != null && <span style={{ ...S.note, marginLeft: '6px' }}>battery {status.battery}%</span>}
-        {status.error && <span style={{ ...S.note, marginLeft: '6px' }}>{status.error}</span>}
+      <div className="flex items-center gap-1.5">
+        <span className={'text-[10px] font-semibold ' + (STATE_TONE[status.state] || 'text-muted')}>● {status.state}</span>
+        {status.battery != null && <span className="text-[10px] text-dim">battery {status.battery}%</span>}
+        {status.error && <span className="text-[10px] text-dim">{status.error}</span>}
       </div>
-      <div style={S.note}>Installs an SSH key on first connect — no password after that. Closing the app stops the robot bridge.</div>
-      <div ref={logRef} style={S.log}>{status.log || ''}</div>
+      <div className="text-[10px] text-dim">Installs an SSH key on first connect — no password after that. Closing the app stops the robot bridge.</div>
+      <div ref={logRef} className="h-[110px] overflow-y-auto bg-bg border border-border rounded-md p-1.5 text-[10px] font-mono text-muted whitespace-pre-wrap">
+        {status.log || ''}
+      </div>
     </div>
   );
 }

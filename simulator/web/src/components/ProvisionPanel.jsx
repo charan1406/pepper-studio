@@ -1,16 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getProvisionStatus, startProvision } from '../lib/bridge';
-
-const S = {
-  select: { width: '100%', padding: '8px 10px', background: '#1c1c1e', border: '1px solid #3a3a3c', borderRadius: '6px', color: '#e5e5e5', fontSize: '12px', outline: 'none', fontFamily: 'inherit', marginBottom: '8px', boxSizing: 'border-box' },
-  primary: { width: '100%', padding: '10px 12px', background: '#8aba8a', border: 'none', borderRadius: '6px', color: '#1c1c1e', fontSize: '12px', fontWeight: 600, cursor: 'pointer' },
-  bar: { height: '6px', background: '#1c1c1e', borderRadius: '3px', overflow: 'hidden', marginTop: '8px' },
-  fill: (p) => ({ height: '100%', width: `${Math.round(p * 100)}%`, background: '#8aba8a', transition: 'width .3s' }),
-  log: { marginTop: '8px', height: '110px', overflowY: 'auto', background: '#0e0e10', border: '1px solid #3a3a3c', borderRadius: '6px', padding: '6px', fontSize: '10px', fontFamily: 'monospace', color: '#9aa', whiteSpace: 'pre-wrap' },
-  note: { fontSize: '10px', color: '#666', marginTop: '6px' },
-  badge: (s) => ({ fontSize: '10px', fontWeight: 600, color: s === 'done' ? '#8aba8a' : s === 'error' ? '#ba8a8a' : s === 'running' ? '#d4a847' : '#999' }),
-  head: { fontSize: '12px', color: '#e5e5e5', fontWeight: 600, marginBottom: '4px' },
-};
+import { Button } from '../design';
 
 // CUDA is Windows-only (no Linux prebuilt); the backend rejects bad combos clearly.
 const BACKENDS = [
@@ -51,35 +41,46 @@ export default function ProvisionPanel() {
 
   const busy = status.state === 'running';
   const done = status.state === 'done' || status.provisioned;
+  const stateTone = done ? 'text-ok' : status.state === 'error' ? 'text-danger' : busy ? 'text-warn' : 'text-muted';
 
   return (
-    <div style={{ marginTop: '4px' }}>
-      <div style={S.head}>Set up the AI brain</div>
-      <div style={S.note}>
+    <div className="mt-1">
+      <div className="text-sm text-text font-semibold mb-1">Set up the AI brain</div>
+      <div className="text-[10px] text-dim">
         Downloads a llama.cpp engine + a recommended model (Qwen2.5 3B) and starts it for you.
         No accounts, no setup. One-time ~2 GB download.
       </div>
-      <div style={{ marginTop: '8px' }}>
-        <select style={S.select} value={backend} disabled={busy}
-          onChange={(e) => setBackend(e.target.value)}>
+      <div className="mt-2 space-y-2">
+        <select value={backend} disabled={busy} onChange={(e) => setBackend(e.target.value)}
+          className="w-full rounded-md bg-surface-1 border border-border px-2.5 py-2 text-sm text-text
+                     focus:outline-none focus:border-accent/60 focus:ring-[3px] focus:ring-accent-soft disabled:opacity-50">
           {BACKENDS.map(([v, label]) => <option key={v} value={v}>{label}</option>)}
         </select>
-        <button style={S.primary} onClick={onStart} disabled={busy}>
+        <Button className="w-full" onClick={onStart} disabled={busy}>
           {done ? 'Re-download & restart' : busy ? 'Working…' : 'Download & start'}
-        </button>
+        </Button>
       </div>
 
-      <div style={{ marginTop: '8px' }}>
-        <span style={S.badge(status.state)}>● {status.state}</span>
-        {status.backend && <span style={{ ...S.note, marginLeft: '6px' }}>backend: {status.backend}</span>}
+      <div className="mt-2">
+        <span className={'text-[10px] font-semibold ' + stateTone}>● {status.state}</span>
+        {status.backend && <span className="text-[10px] text-dim ml-1.5">backend: {status.backend}</span>}
         {status.step && status.step !== 'done' && (
-          <span style={{ ...S.note, marginLeft: '6px' }}>{STEP_LABEL[status.step] || status.step}</span>
+          <span className="text-[10px] text-dim ml-1.5">{STEP_LABEL[status.step] || status.step}</span>
         )}
       </div>
-      {(busy || done) && <div style={S.bar}><div style={S.fill(done ? 1 : (status.progress || 0))} /></div>}
-      {status.error && <div style={{ ...S.note, color: '#ba8a8a' }}>{status.error}</div>}
-      {done && !busy && <div style={{ ...S.note, color: '#8aba8a' }}>Brain ready — the AI is now running locally.</div>}
-      {(status.log || []).length > 0 && <div ref={logRef} style={S.log}>{(status.log || []).join('\n')}</div>}
+      {(busy || done) && (
+        <div className="h-1.5 bg-surface-1 rounded-full overflow-hidden mt-2">
+          <div className="h-full bg-accent transition-[width] duration-300"
+            style={{ width: `${Math.round((done ? 1 : (status.progress || 0)) * 100)}%` }} />
+        </div>
+      )}
+      {status.error && <div className="text-[10px] text-danger mt-1.5">{status.error}</div>}
+      {done && !busy && <div className="text-[10px] text-ok mt-1.5">Brain ready — the AI is now running locally.</div>}
+      {(status.log || []).length > 0 && (
+        <div ref={logRef} className="mt-2 h-[110px] overflow-y-auto bg-bg border border-border rounded-md p-1.5 text-[10px] font-mono text-muted whitespace-pre-wrap">
+          {(status.log || []).join('\n')}
+        </div>
+      )}
     </div>
   );
 }

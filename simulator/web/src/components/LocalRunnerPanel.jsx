@@ -1,18 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getRunnerStatus, listModels, startRunner, stopRunner } from '../lib/bridge';
-
-const S = {
-  input: { width: '100%', padding: '8px 10px', background: '#1c1c1e', border: '1px solid #3a3a3c', borderRadius: '6px', color: '#e5e5e5', fontSize: '12px', outline: 'none', fontFamily: 'inherit', marginBottom: '6px', boxSizing: 'border-box' },
-  btn: { padding: '8px 10px', background: '#3a3a3c', border: '1px solid #4a4a4c', borderRadius: '6px', color: '#e5e5e5', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit' },
-  primary: { padding: '8px 12px', background: '#8aba8a', border: 'none', borderRadius: '6px', color: '#1c1c1e', fontSize: '12px', fontWeight: 600, cursor: 'pointer' },
-  row: { display: 'flex', gap: '6px' },
-  grid2: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' },
-  log: { marginTop: '8px', height: '120px', overflowY: 'auto', background: '#0e0e10', border: '1px solid #3a3a3c', borderRadius: '6px', padding: '6px', fontSize: '10px', fontFamily: 'monospace', color: '#9aa', whiteSpace: 'pre-wrap' },
-  badge: (s) => ({ fontSize: '10px', fontWeight: 600, color: s === 'ready' ? '#8aba8a' : s === 'error' ? '#ba8a8a' : '#d4a847' }),
-  note: { fontSize: '10px', color: '#666', marginTop: '6px' },
-};
+import { Button } from '../design';
 
 const CACHE_TYPES = ['', 'f16', 'q8_0', 'q4_0'];
+
+const FIELD = 'w-full rounded-md bg-surface-1 border border-border px-2.5 py-2 text-sm text-text '
+  + 'placeholder:text-dim focus:outline-none focus:border-accent/60 focus:ring-[3px] focus:ring-accent-soft';
 
 export default function LocalRunnerPanel() {
   const [dir, setDir] = useState('');
@@ -59,47 +52,50 @@ export default function LocalRunnerPanel() {
   const onStop = async () => { const r = await stopRunner(); if (r?.data) setStatus(r.data); };
 
   const noBinary = status.state === 'error' && /not found/i.test(status.error || '');
+  const stateTone = status.state === 'ready' ? 'text-ok' : status.state === 'error' ? 'text-danger' : 'text-warn';
 
   return (
-    <div style={{ marginTop: '10px' }}>
-      <div style={S.row}>
-        <input style={S.input} value={dir} placeholder="models dir (e.g. ~/models/gguf)"
+    <div className="mt-2.5 space-y-1.5">
+      <div className="flex gap-1.5">
+        <input className={FIELD} value={dir} placeholder="models dir (e.g. ~/models/gguf)"
           onChange={(e) => setDir(e.target.value)} />
-        <button style={S.btn} onClick={onScan}>Scan</button>
+        <Button variant="secondary" onClick={onScan}>Scan</Button>
       </div>
-      <select style={S.input} value={gguf} onChange={(e) => setGguf(e.target.value)}>
+      <select className={FIELD} value={gguf} onChange={(e) => setGguf(e.target.value)}>
         {models.length === 0 && <option value="">(scan a models dir)</option>}
         {models.map((m) => <option key={m} value={m}>{m}</option>)}
       </select>
-      <div style={S.grid2}>
-        <input style={S.input} value={ngl} placeholder="-ngl (GPU layers)" onChange={(e) => setNgl(e.target.value)} />
-        <input style={S.input} value={ctx} placeholder="-c (ctx size)" onChange={(e) => setCtx(e.target.value)} />
+      <div className="grid grid-cols-2 gap-1.5">
+        <input className={FIELD} value={ngl} placeholder="-ngl (GPU layers)" onChange={(e) => setNgl(e.target.value)} />
+        <input className={FIELD} value={ctx} placeholder="-c (ctx size)" onChange={(e) => setCtx(e.target.value)} />
       </div>
-      <div style={S.grid2}>
-        <select style={S.input} value={cacheType} onChange={(e) => setCacheType(e.target.value)}>
+      <div className="grid grid-cols-2 gap-1.5 items-center">
+        <select className={FIELD} value={cacheType} onChange={(e) => setCacheType(e.target.value)}>
           {CACHE_TYPES.map((t) => <option key={t} value={t}>{t ? `KV ${t}` : 'KV default'}</option>)}
         </select>
-        <label style={{ ...S.note, display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <label className="flex items-center gap-1.5 text-[10px] text-dim">
           <input type="checkbox" checked={flashAttn} onChange={(e) => setFlashAttn(e.target.checked)} /> flash-attn (-fa)
         </label>
       </div>
-      <input style={S.input} value={mmproj} placeholder="--mmproj (vision, optional)" onChange={(e) => setMmproj(e.target.value)} />
-      <input style={S.input} value={extra} placeholder="extra args (e.g. --threads 6)" onChange={(e) => setExtra(e.target.value)} />
-      <input style={S.input} value={binary} placeholder="llama-server path (blank = use PATH)" onChange={(e) => setBinary(e.target.value)} />
-      <div style={S.grid2}>
-        <button style={S.primary} onClick={onStart} disabled={!gguf}>Start</button>
-        <button style={S.btn} onClick={onStop}>Stop</button>
+      <input className={FIELD} value={mmproj} placeholder="--mmproj (vision, optional)" onChange={(e) => setMmproj(e.target.value)} />
+      <input className={FIELD} value={extra} placeholder="extra args (e.g. --threads 6)" onChange={(e) => setExtra(e.target.value)} />
+      <input className={FIELD} value={binary} placeholder="llama-server path (blank = use PATH)" onChange={(e) => setBinary(e.target.value)} />
+      <div className="grid grid-cols-2 gap-1.5">
+        <Button onClick={onStart} disabled={!gguf}>Start</Button>
+        <Button variant="secondary" onClick={onStop}>Stop</Button>
       </div>
-      <div style={{ marginTop: '6px' }}>
-        <span style={S.badge(status.state)}>● {status.state}</span>
-        {status.error && <span style={{ ...S.note, marginLeft: '6px' }}>{status.error}</span>}
+      <div className="pt-0.5">
+        <span className={'text-[10px] font-semibold ' + stateTone}>● {status.state}</span>
+        {status.error && <span className="text-[10px] text-dim ml-1.5">{status.error}</span>}
       </div>
       {noBinary && (
-        <div style={S.note}>
+        <div className="text-[10px] text-dim">
           No llama-server found — see <strong>LLAMA_SETUP.md</strong> in the repo to install it.
         </div>
       )}
-      <div ref={logRef} style={S.log}>{(status.log || []).join('\n')}</div>
+      <div ref={logRef} className="h-[120px] overflow-y-auto bg-bg border border-border rounded-md p-1.5 text-[10px] font-mono text-muted whitespace-pre-wrap">
+        {(status.log || []).join('\n')}
+      </div>
     </div>
   );
 }
