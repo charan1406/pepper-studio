@@ -10,7 +10,7 @@ import VoicePanel from './VoicePanel';
 
 function Section({ title, aside, children }) {
   return (
-    <section className="px-5 py-4 border-b border-[#9a9da0]">
+    <section className="px-5 py-4 border-b border-white/10">
       <div className="flex items-center justify-between mb-3.5">
         <h3 className="hmi-engrave text-[11px] font-bold uppercase tracking-[2px]">{title}</h3>
         {aside}
@@ -83,8 +83,8 @@ export default function ControlPanel() {
   };
 
   return (
-    <div className="hmi-panel w-[348px] h-full border-r border-[#86898c] flex flex-col">
-      <header className="hmi-plate flex items-center justify-between px-5 h-14 border-b border-[#9a9da0] shrink-0">
+    <div className="hmi-panel w-[348px] h-full border-r border-white/10 flex flex-col">
+      <header className="hmi-plate flex items-center justify-between px-5 h-14 border-b border-white/10 shrink-0">
         <span className="hmi-engrave text-[13px] font-bold uppercase tracking-[2px]">Manual Control</span>
         <button onClick={toggleSettings} aria-label="Open setup"
           className="hmi-key w-8 h-8 flex items-center justify-center rounded-md">
@@ -155,7 +155,7 @@ export default function ControlPanel() {
       <Section title="Eyes">
         <div className="flex items-center gap-3">
           <input type="color" value={eye} onChange={(e) => onEyeChange(e.target.value)}
-            className="w-11 h-9 bg-transparent border border-[#9a9fa3] rounded-md cursor-pointer" />
+            className="w-11 h-9 bg-transparent border border-white/10 rounded-md cursor-pointer" />
           <span className="hmi-engrave text-sm font-mono">{eye}</span>
         </div>
       </Section>

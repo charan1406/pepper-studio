@@ -85,8 +85,8 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="hmi-panel w-[380px] h-full border-l border-[#86898c] flex flex-col overflow-hidden">
-      <header className="hmi-plate flex items-center gap-2.5 px-5 h-14 border-b border-[#9a9da0] shrink-0">
+    <div className="hmi-panel w-[380px] h-full border-l border-white/10 flex flex-col overflow-hidden">
+      <header className="hmi-plate flex items-center gap-2.5 px-5 h-14 border-b border-white/10 shrink-0">
         <span className={'hmi-lamp ' + (connected ? 'hmi-lamp-on' : 'hmi-lamp-red')} />
         <span className="hmi-engrave text-[13px] font-bold uppercase tracking-[2px]">Telemetry</span>
         <span className="ml-auto hmi-engrave text-[10px] font-bold tracking-wider opacity-70">

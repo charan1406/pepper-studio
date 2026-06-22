@@ -51,28 +51,28 @@ body {
 /* ── Industrial HMI theme (teach-pendant / FANUC-style control panel) ── */
 .hmi-panel {
   background:
-    repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 1px, rgba(0,0,0,.025) 1px 3px),
-    linear-gradient(157deg, #dcdee0 0%, #c3c6c9 52%, #abaeb1 100%);
+    repeating-linear-gradient(90deg, rgba(255,255,255,.022) 0 1px, rgba(0,0,0,.12) 1px 3px),
+    linear-gradient(157deg, #2c2f34 0%, #212428 52%, #15171a 100%);
 }
-.hmi-engrave { color: #3c4043; text-shadow: 0 1px 0 rgba(255,255,255,.75); }
+.hmi-engrave { color: #c4c8cd; text-shadow: 0 1px 1px rgba(0,0,0,.7); }
 .hmi-plate {
-  background: linear-gradient(180deg, #b7babd, #c9cccf);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.7), inset 0 -1px 0 rgba(0,0,0,.18);
+  background: linear-gradient(180deg, #2b2e33, #1d1f23);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), inset 0 -1px 0 rgba(0,0,0,.55);
 }
 
 /* Physical keycap */
 .hmi-key {
-  background: linear-gradient(180deg, #fcfcfd, #ccced1);
-  border: 1px solid #9a9fa3; border-radius: 7px; color: #24272a;
-  text-shadow: 0 1px 0 rgba(255,255,255,.7);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.95), inset 0 -2px 3px rgba(0,0,0,.10), 0 2px 3px rgba(0,0,0,.32);
+  background: linear-gradient(180deg, #3d4147, #282b2f);
+  border: 1px solid #121416; border-radius: 7px; color: #dde1e5;
+  text-shadow: 0 -1px 0 rgba(0,0,0,.5);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.10), inset 0 -2px 3px rgba(0,0,0,.30), 0 2px 3px rgba(0,0,0,.5);
   transition: transform .04s ease, box-shadow .04s ease, background .1s;
 }
-.hmi-key:hover { background: linear-gradient(180deg, #ffffff, #d4d6d9); }
-.hmi-key:active { transform: translateY(1px); box-shadow: inset 0 2px 5px rgba(0,0,0,.28), 0 1px 1px rgba(0,0,0,.25); }
-.hmi-key:disabled { opacity: .5; }
-.hmi-key-go { background: linear-gradient(180deg, #c8f7d8, #7fd79b); border-color: #4e9e6c; color: #103d23; }
-.hmi-key-go:hover { background: linear-gradient(180deg, #d6ffe4, #86e0a3); }
+.hmi-key:hover { background: linear-gradient(180deg, #474c53, #2f3338); }
+.hmi-key:active { transform: translateY(1px); box-shadow: inset 0 2px 5px rgba(0,0,0,.55), 0 1px 1px rgba(0,0,0,.3); }
+.hmi-key:disabled { opacity: .45; }
+.hmi-key-go { background: linear-gradient(180deg, #207050, #154e38); border-color: #0a3525; color: #b8f4d4; text-shadow: 0 -1px 0 rgba(0,0,0,.4); }
+.hmi-key-go:hover { background: linear-gradient(180deg, #268359, #1a5c42); }
 
 /* Dark keycap (D-pad) */
 .hmi-key-dark {
@@ -86,11 +86,11 @@ body {
 
 /* Recessed light data field */
 .hmi-field {
-  background: #eceeef; border: 1px solid #9a9fa3; border-radius: 5px; color: #1f2225;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,.18);
+  background: #0d1013; border: 1px solid #05070a; border-radius: 5px; color: #d6dadf;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,.7);
 }
-.hmi-field::placeholder { color: #8c9094; }
-.hmi-field:focus { outline: none; border-color: #5fb0c2; box-shadow: inset 0 2px 4px rgba(0,0,0,.18), 0 0 0 3px rgba(52,216,200,.25); }
+.hmi-field::placeholder { color: #585f67; }
+.hmi-field:focus { outline: none; border-color: #2c9c84; box-shadow: inset 0 2px 6px rgba(0,0,0,.7), 0 0 0 3px rgba(52,216,200,.22); }
 
 /* LCD readout window */
 .hmi-lcd {

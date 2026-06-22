@@ -14,7 +14,7 @@ export default function TopBar() {
   const toggleSettings = usePepperStore((s) => s.toggleSettings);
 
   return (
-    <header className="hmi-plate flex items-center justify-between gap-4 px-5 h-14 border-b border-[#9a9da0] shrink-0">
+    <header className="hmi-plate flex items-center justify-between gap-4 px-5 h-14 border-b border-white/10 shrink-0">
       <div className="flex items-center gap-2.5 min-w-0">
         <span className="hmi-engrave text-[15px] font-bold uppercase tracking-[2.5px]">Pepper Studio</span>
         <span className="hmi-engrave text-[10px] uppercase tracking-[2px] opacity-60 hidden sm:inline">Sandbox</span>
