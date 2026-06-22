@@ -86,7 +86,7 @@ export default function App() {
                 camera={{ position: [3, 4, 6], fov: 50, near: 0.1, far: 100 }}
                 shadows
                 gl={{ antialias: true }}
-                style={{ background: '#0a0c0f' }}
+                style={{ background: '#1a1611' }}
               >
                 <Suspense fallback={<LoadingFallback />}>
                   <Room />
@@ -102,8 +102,8 @@ export default function App() {
                   target={[0, 0.5, 0]}
                 />
 
-                {/* Fog for atmosphere */}
-                <fog attach="fog" args={['#0a0c0f', 8, 20]} />
+                {/* Warm atmospheric fade beyond the room */}
+                <fog attach="fog" args={['#1a1611', 18, 38]} />
               </Canvas>
 
               <SpeechOverlay />
