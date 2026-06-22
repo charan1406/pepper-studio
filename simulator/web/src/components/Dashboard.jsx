@@ -2,28 +2,33 @@ import React, { useState } from 'react';
 import { usePepperStore } from '../hooks/usePepperState';
 import ApiReference from './ApiReference';
 
-/**
- * Dashboard panel: connection/status, position + minimap, speech, key joints,
- * and the live API call log.
- */
-
-function Row({ label, children }) {
+function Label({ children, extra }) {
   return (
-    <div className="flex justify-between py-0.5">
-      <span className="text-dim">{label}</span>
-      <span className="text-text">{children}</span>
+    <div className="flex items-center justify-between mb-2">
+      <h3 className="hmi-engrave text-[10px] font-bold uppercase tracking-[2px]">{children}</h3>
+      {extra}
     </div>
   );
 }
 
-function Section({ title, extra, children }) {
+function Lcd({ label, value, unit, big }) {
   return (
-    <div className="px-5 py-3 border-b border-border">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="font-sans text-[10px] font-semibold text-dim uppercase tracking-[1.5px]">{title}</h3>
-        {extra}
+    <div className="hmi-lcd rounded px-3 py-2">
+      <div className="text-[8px] tracking-[2px] opacity-55 mb-1">{label}</div>
+      <div className="flex items-baseline gap-1">
+        <span className={'lcd-7seg ' + (big ? 'text-[22px]' : 'text-[15px]')}>{value}</span>
+        {unit && <span className="text-[10px] opacity-70">{unit}</span>}
       </div>
-      {children}
+    </div>
+  );
+}
+
+function LampRow({ on, red, label, value }) {
+  return (
+    <div className="flex items-center gap-2 py-1">
+      <span className={'hmi-lamp ' + (on ? 'hmi-lamp-on' : red ? 'hmi-lamp-red' : 'hmi-lamp-off')} />
+      <span className="hmi-engrave text-[12px]">{label}</span>
+      <span className="ml-auto hmi-engrave text-[12px] font-semibold">{value}</span>
     </div>
   );
 }
@@ -35,22 +40,22 @@ function MiniMap() {
   const roomObjects = usePepperStore((s) => s.roomObjects);
 
   const mapW = 340;
-  const mapH = 80;
+  const mapH = 70;
   const scaleX = mapW / 8;
   const scaleY = mapH / 6;
 
   return (
-    <div className="w-full h-20 bg-bg rounded-md border border-border relative mt-1 overflow-hidden">
-      <svg width={mapW} height={mapH} viewBox={`0 0 ${mapW} ${mapH}`}>
+    <div className="hmi-glass w-full h-[70px] rounded relative overflow-hidden">
+      <svg width="100%" height={mapH} viewBox={`0 0 ${mapW} ${mapH}`} preserveAspectRatio="none">
         {Object.entries(roomObjects).map(([name, obj]) => (
-          <circle key={name} cx={obj.x * scaleX} cy={mapH - obj.y * scaleY} r={3} fill="#3a3a3c" />
+          <circle key={name} cx={obj.x * scaleX} cy={mapH - obj.y * scaleY} r={3} fill="#2c4a38" />
         ))}
-        <circle cx={x * scaleX} cy={mapH - y * scaleY} r={5} fill="#7c7cf0" stroke="#9a9af5" strokeWidth={1} />
+        <circle cx={x * scaleX} cy={mapH - y * scaleY} r={5} fill="#34d8c8" stroke="#6cf39a" strokeWidth={1} />
         <line
           x1={x * scaleX} y1={mapH - y * scaleY}
           x2={x * scaleX + Math.cos(-theta + Math.PI / 2) * 12}
           y2={mapH - y * scaleY - Math.sin(-theta + Math.PI / 2) * 12}
-          stroke="#7c7cf0" strokeWidth={2}
+          stroke="#6cf39a" strokeWidth={2}
         />
       </svg>
     </div>
@@ -64,97 +69,78 @@ export default function Dashboard() {
   const y = usePepperStore((s) => s.y);
   const theta = usePepperStore((s) => s.theta);
   const posture = usePepperStore((s) => s.posture);
-  const isSpeaking = usePepperStore((s) => s.isSpeaking);
-  const currentSpeech = usePepperStore((s) => s.currentSpeech);
-  const speechLanguage = usePepperStore((s) => s.speechLanguage);
   const isMoving = usePepperStore((s) => s.isMoving);
   const eyeColor = usePepperStore((s) => s.eyeColor);
   const autonomousLife = usePepperStore((s) => s.autonomousLife);
-  const faceTracking = usePepperStore((s) => s.faceTracking);
   const currentAnimation = usePepperStore((s) => s.currentAnimation);
   const uptime = usePepperStore((s) => s.uptime);
   const apiLog = usePepperStore((s) => s.apiLog);
-  const joints = usePepperStore((s) => s.joints);
 
   const [showApiRef, setShowApiRef] = useState(false);
 
-  const formatTime = (s) => {
+  const clock = (s) => {
     const h = Math.floor(s / 3600);
     const m = Math.floor((s % 3600) / 60);
-    return `${h}h ${m}m`;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
   };
 
-  const batteryTone = battery > 50 ? 'text-ok' : battery > 20 ? 'text-warn' : 'text-danger';
-
   return (
-    <div className="w-[380px] h-full bg-surface-1 border-l border-border flex flex-col overflow-hidden font-mono text-[11px] text-muted">
-      <div className="px-5 py-4 border-b border-border flex items-center gap-2.5">
-        <div className={'w-2 h-2 rounded-full ' + (connected ? 'bg-ok' : 'bg-danger')} />
-        <div className="font-sans text-base font-bold text-text tracking-tight">Pepper Simulator</div>
-        <div className="ml-auto text-[10px] text-dim">{connected ? 'LIVE' : 'OFFLINE'}</div>
+    <div className="hmi-panel w-[380px] h-full border-l border-[#86898c] flex flex-col overflow-hidden">
+      <header className="hmi-plate flex items-center gap-2.5 px-5 h-14 border-b border-[#9a9da0] shrink-0">
+        <span className={'hmi-lamp ' + (connected ? 'hmi-lamp-on' : 'hmi-lamp-red')} />
+        <span className="hmi-engrave text-[13px] font-bold uppercase tracking-[2px]">Telemetry</span>
+        <span className="ml-auto hmi-engrave text-[10px] font-bold tracking-wider opacity-70">
+          {connected ? 'LIVE' : 'OFFLINE'}
+        </span>
+      </header>
+
+      <div className="flex flex-col flex-1 min-h-0 p-4 gap-4">
+        <div className="grid grid-cols-2 gap-3">
+          <Lcd big label="BATTERY" value={battery} unit="%" />
+          <Lcd big label="UPTIME" value={clock(uptime)} />
+        </div>
+
+        <div className="hmi-plate rounded-lg px-3.5 py-2.5">
+          <Label>Status</Label>
+          <LampRow on={connected} red={!connected} label="Link" value={connected ? 'OK' : 'DOWN'} />
+          <LampRow on={isMoving} label="Motion" value={isMoving ? 'MOVING' : 'idle'} />
+          <LampRow on={autonomousLife} label="Auto-life" value={autonomousLife ? 'on' : 'off'} />
+          <div className="flex items-center gap-2 py-1">
+            <span className="hmi-lamp" style={{ background: `rgb(${eyeColor.r},${eyeColor.g},${eyeColor.b})`, boxShadow: `0 0 7px rgba(${eyeColor.r},${eyeColor.g},${eyeColor.b},.7)` }} />
+            <span className="hmi-engrave text-[12px]">Eyes / Pose</span>
+            <span className="ml-auto hmi-engrave text-[12px] font-semibold">{posture}{currentAnimation ? ` · ${currentAnimation.split('/').pop()}` : ''}</span>
+          </div>
+        </div>
+
+        <div>
+          <Label>Position</Label>
+          <div className="grid grid-cols-3 gap-2 mb-2">
+            <Lcd label="X·M" value={x.toFixed(2)} />
+            <Lcd label="Y·M" value={y.toFixed(2)} />
+            <Lcd label="θ·DEG" value={(theta * 180 / Math.PI).toFixed(0)} />
+          </div>
+          <MiniMap />
+        </div>
+
+        <div className="flex flex-col flex-1 min-h-0">
+          <Label extra={
+            <button onClick={() => setShowApiRef(true)}
+              className="hmi-key px-2 py-1 rounded text-[10px] font-semibold">API Reference</button>
+          }>API Log</Label>
+          <div className="hmi-lcd rounded flex-1 min-h-0 overflow-auto px-3 py-2 text-[10px] leading-relaxed">
+            {[...apiLog].reverse().map((entry, i) => (
+              <div key={i} className="flex gap-2">
+                <span className="opacity-50 min-w-[52px]">{entry.time}</span>
+                <span className="font-bold min-w-[30px]">{entry.method}</span>
+                <span className="opacity-80 flex-1 truncate">{entry.endpoint}</span>
+              </div>
+            ))}
+            {apiLog.length === 0 && <div className="opacity-50">awaiting traffic…</div>}
+          </div>
+        </div>
       </div>
 
-      <Section title="Status">
-        <Row label="Battery"><span className={batteryTone + ' font-semibold'}>{battery}%</span></Row>
-        <Row label="Posture">{posture}</Row>
-        <Row label="Uptime">{formatTime(uptime)}</Row>
-        <div className="flex justify-between py-0.5">
-          <span className="text-dim">Moving</span>
-          <span className={isMoving ? 'text-ok' : 'text-dim'}>{isMoving ? 'YES' : 'no'}</span>
-        </div>
-        <div className="flex justify-between py-0.5">
-          <span className="text-dim">Eyes</span>
-          <span style={{ color: `rgb(${eyeColor.r},${eyeColor.g},${eyeColor.b})` }}>
-            ● rgb({eyeColor.r},{eyeColor.g},{eyeColor.b})
-          </span>
-        </div>
-        <Row label="Auto Life">{autonomousLife ? 'on' : 'off'}</Row>
-        {currentAnimation && (
-          <div className="flex justify-between py-0.5">
-            <span className="text-dim">Animation</span>
-            <span className="text-warn">{currentAnimation.split('/').pop()}</span>
-          </div>
-        )}
-      </Section>
-
-      <Section title="Position">
-        <div className="flex gap-4 mt-1">
-          <span>x: <span className="text-text">{x.toFixed(2)}m</span></span>
-          <span>y: <span className="text-text">{y.toFixed(2)}m</span></span>
-          <span>θ: <span className="text-text">{(theta * 180 / Math.PI).toFixed(1)}°</span></span>
-        </div>
-        <MiniMap />
-      </Section>
-
-      <Section title={<>Speech {isSpeaking && <span className="text-ok normal-case tracking-normal">● speaking ({speechLanguage})</span>}</>}>
-        <div className="bg-bg rounded-md px-3 py-2 mt-1 text-text italic min-h-[24px] break-words">
-          {currentSpeech || '(silent)'}
-        </div>
-      </Section>
-
-      <Section title="Key Joints (rad)">
-        {['HeadYaw', 'HeadPitch', 'LShoulderPitch', 'RShoulderPitch'].map((j) => (
-          <Row key={j} label={j}>{(joints[j] ?? 0).toFixed(3)}</Row>
-        ))}
-      </Section>
-
-      <Section title="API Log" extra={
-        <button onClick={() => setShowApiRef(true)}
-          className="px-2 py-1 bg-surface-2 border border-border rounded text-[10px] text-text hover:border-border-strong">
-          API Reference
-        </button>
-      } />
       {showApiRef && <ApiReference onClose={() => setShowApiRef(false)} />}
-      <div className="flex-1 overflow-auto px-5 py-3">
-        {[...apiLog].reverse().map((entry, i) => (
-          <div key={i} className="flex gap-2 py-1 border-b border-bg text-[10px]">
-            <span className="text-dim min-w-[55px]">{entry.time}</span>
-            <span className={'font-semibold min-w-[32px] ' + (entry.method === 'POST' ? 'text-warn' : 'text-ok')}>{entry.method}</span>
-            <span className="text-muted flex-1">{entry.endpoint}</span>
-          </div>
-        ))}
-        {apiLog.length === 0 && <div className="text-dim italic">Waiting for API calls...</div>}
-      </div>
     </div>
   );
 }

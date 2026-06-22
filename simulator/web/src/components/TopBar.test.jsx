@@ -8,17 +8,17 @@ beforeEach(() => {
 });
 
 describe('TopBar', () => {
-  it('reflects live store state in the status chips', () => {
+  it('reflects live store state in the status readouts', () => {
     usePepperStore.setState({ connected: true, battery: 42, posture: 'Crouch' });
     render(<TopBar />);
-    expect(screen.getByText(/Connected/)).toBeInTheDocument();
-    expect(screen.getByText('42%')).toBeInTheDocument();
+    expect(screen.getByText(/ONLINE/)).toBeInTheDocument();
+    expect(screen.getByText('42')).toBeInTheDocument();
     expect(screen.getByText('Crouch')).toBeInTheDocument();
   });
 
   it('shows Offline when disconnected', () => {
     render(<TopBar />);
-    expect(screen.getByText(/Offline/)).toBeInTheDocument();
+    expect(screen.getByText(/OFFLINE/)).toBeInTheDocument();
   });
 
   it('switching to Real Robot updates the store mode', () => {

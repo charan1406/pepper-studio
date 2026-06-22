@@ -59,7 +59,7 @@ export default function App() {
   useBridgeTarget();
 
   return (
-    <div className="flex flex-col w-screen h-screen bg-bg">
+    <div className="flex flex-col w-screen h-screen hmi-panel">
       <style>{`
         @keyframes slideInRight {
           from { transform: translateX(100px); opacity: 0; }
@@ -78,35 +78,39 @@ export default function App() {
 
       <div className="flex flex-1 min-h-0">
         <ControlPanel />
-        {/* 3D Viewport */}
-        <div className="flex-1 relative">
-          <Canvas
-            camera={{ position: [3, 4, 6], fov: 50, near: 0.1, far: 100 }}
-            shadows
-            gl={{ antialias: true }}
-            style={{ background: '#1c1c1e' }}
-          >
-            <Suspense fallback={<LoadingFallback />}>
-              <Room />
-              <PepperModel />
-            </Suspense>
+        {/* 3D Viewport — recessed in a metal bezel, like a panel screen */}
+        <div className="flex-1 min-w-0 p-3">
+          <div className="hmi-bezel h-full w-full rounded-xl p-1.5">
+            <div className="relative h-full w-full rounded-lg overflow-hidden hmi-glass">
+              <Canvas
+                camera={{ position: [3, 4, 6], fov: 50, near: 0.1, far: 100 }}
+                shadows
+                gl={{ antialias: true }}
+                style={{ background: '#0a0c0f' }}
+              >
+                <Suspense fallback={<LoadingFallback />}>
+                  <Room />
+                  <PepperModel />
+                </Suspense>
 
-            <OrbitControls
-              enableDamping
-              dampingFactor={0.05}
-              maxPolarAngle={Math.PI / 2.1}
-              minDistance={2}
-              maxDistance={15}
-              target={[0, 0.5, 0]}
-            />
+                <OrbitControls
+                  enableDamping
+                  dampingFactor={0.05}
+                  maxPolarAngle={Math.PI / 2.1}
+                  minDistance={2}
+                  maxDistance={15}
+                  target={[0, 0.5, 0]}
+                />
 
-            {/* Fog for atmosphere */}
-            <fog attach="fog" args={['#1c1c1e', 8, 20]} />
-          </Canvas>
+                {/* Fog for atmosphere */}
+                <fog attach="fog" args={['#0a0c0f', 8, 20]} />
+              </Canvas>
 
-          <SpeechOverlay />
+              <SpeechOverlay />
+              <SearchResultPopup />
+            </div>
+          </div>
           <ChatPopup />
-          <SearchResultPopup />
         </div>
 
         {/* Dashboard */}
