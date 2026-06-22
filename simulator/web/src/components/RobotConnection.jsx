@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { getRobotStatus, connectRobot, disconnectRobot, setBridgeUrl } from '../lib/bridge';
+import { getRobotStatus, connectRobot, disconnectRobot } from '../lib/bridge';
+import { usePepperStore } from '../hooks/usePepperState';
 
 const S = {
   input: { width: '100%', padding: '8px 10px', background: '#1c1c1e', border: '1px solid #3a3a3c', borderRadius: '6px', color: '#e5e5e5', fontSize: '12px', outline: 'none', fontFamily: 'inherit', marginBottom: '6px', boxSizing: 'border-box' },
@@ -17,6 +18,8 @@ export default function RobotConnection() {
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState({ state: 'disconnected', log: '', battery: null, error: '', bridge_url: '' });
   const logRef = useRef(null);
+  const setMode = usePepperStore((s) => s.setMode);
+  const setRobotBridgeUrl = usePepperStore((s) => s.setRobotBridgeUrl);
 
   const refresh = () => getRobotStatus().then((r) => { if (r?.data) setStatus(r.data); }).catch(() => {});
 
@@ -28,11 +31,18 @@ export default function RobotConnection() {
 
   useEffect(() => { if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight; }, [status.log]);
 
-  // On a successful connect, point the app's bridge URL at the robot so the
-  // existing manual controls drive it.
+  // Connection state drives the bridge-target dial: connected → flip to 'real'
+  // and publish the robot's bridge URL (useBridgeTarget points controls at it);
+  // otherwise clear it and fall back to 'sim'.
   useEffect(() => {
-    if (status.state === 'connected' && status.bridge_url) setBridgeUrl(status.bridge_url);
-  }, [status.state, status.bridge_url]);
+    if (status.state === 'connected' && status.bridge_url) {
+      setRobotBridgeUrl(status.bridge_url);
+      setMode('real');
+    } else if (status.state === 'disconnected') {
+      setRobotBridgeUrl('');
+      setMode('sim');
+    }
+  }, [status.state, status.bridge_url, setMode, setRobotBridgeUrl]);
 
   const onConnect = async () => {
     const r = await connectRobot({ host, user, password });

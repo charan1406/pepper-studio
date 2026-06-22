@@ -8,7 +8,7 @@ import ChatPopup from './components/ChatPopup';
 import SearchResultPopup from './components/SearchResultPopup';
 import ControlPanel from './components/ControlPanel';
 import TopBar from './components/TopBar';
-import { usePepperWebSocket, usePepperStore, useBrowserTTS } from './hooks/usePepperState';
+import { usePepperWebSocket, usePepperStore, useBrowserTTS, useBridgeTarget } from './hooks/usePepperState';
 
 function SpeechOverlay() {
   const isSpeaking = usePepperStore((s) => s.isSpeaking);
@@ -51,10 +51,15 @@ function SpeechOverlay() {
 
 function RealModeBanner() {
   const mode = usePepperStore((s) => s.mode);
+  const robotBridgeUrl = usePepperStore((s) => s.robotBridgeUrl);
   if (mode !== 'real') return null;
+  const connected = Boolean(robotBridgeUrl);
   return (
-    <div className="flex items-center justify-center gap-2 h-7 bg-danger/15 border-b border-danger/30 text-danger text-xs font-medium shrink-0">
-      ⚠ Real-robot mode — control commands drive a physical Pepper. Keep the e-stop within reach.
+    <div className={'flex items-center justify-center gap-2 h-7 text-xs font-medium shrink-0 border-b '
+      + (connected ? 'bg-danger/15 border-danger/30 text-danger' : 'bg-warn/15 border-warn/30 text-warn')}>
+      {connected
+        ? '⚠ Real-robot mode — control commands drive a physical Pepper. Keep the e-stop within reach.'
+        : '○ Real-robot mode armed, but no robot is connected — connect one in the Robot panel. Commands route to the simulator until then.'}
     </div>
   );
 }
@@ -76,6 +81,7 @@ function LoadingFallback() {
 export default function App() {
   usePepperWebSocket();
   useBrowserTTS();
+  useBridgeTarget();
 
   return (
     <div className="flex flex-col w-screen h-screen bg-bg">

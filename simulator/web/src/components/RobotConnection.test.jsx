@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import RobotConnection from './RobotConnection';
 import * as bridge from '../lib/bridge';
+import { usePepperStore } from '../hooks/usePepperState';
 
 vi.mock('../lib/bridge', async (importOriginal) => {
   const actual = await importOriginal();
@@ -14,7 +15,10 @@ vi.mock('../lib/bridge', async (importOriginal) => {
   };
 });
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  usePepperStore.setState({ mode: 'sim', robotBridgeUrl: '' });
+});
 
 describe('RobotConnection', () => {
   it('shows disconnected by default', async () => {
@@ -33,13 +37,14 @@ describe('RobotConnection', () => {
     expect(arg.user).toBe('nao');
   });
 
-  it('points the bridge URL at the robot once connected', async () => {
+  it('flips the dial to real + publishes the robot bridge URL once connected', async () => {
     bridge.getRobotStatus.mockResolvedValue({
       success: true,
       data: { state: 'connected', log: '[BRIDGE] up', battery: 91, error: '', bridge_url: 'http://192.168.1.17:5001' },
     });
     render(<RobotConnection />);
-    await waitFor(() => expect(bridge.setBridgeUrl).toHaveBeenCalledWith('http://192.168.1.17:5001'));
+    await waitFor(() => expect(usePepperStore.getState().robotBridgeUrl).toBe('http://192.168.1.17:5001'));
+    expect(usePepperStore.getState().mode).toBe('real');
     expect(screen.getByText(/battery 91%/i)).toBeInTheDocument();
   });
 

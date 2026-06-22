@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { useEffect, useRef, useCallback } from 'react';
+import { setBridgeUrl } from '../lib/bridge';
 
 /**
  * Zustand store for Pepper's state.
@@ -11,9 +12,11 @@ export const usePepperStore = create((set) => ({
   state: null,
 
   // Bridge target: 'sim' (localhost simulator) or 'real' (a physical Pepper).
-  // Presentational today (drives the safety banner); the next slice points the
-  // bridge URL at the real robot when this flips.
+  // `mode` is the single dial; useBridgeTarget() maps it (+ robotBridgeUrl) to
+  // the actual bridge URL that control commands hit. 'real' with no connected
+  // robot routes to the sim (harmless) — the banner says so.
   mode: 'sim',
+  robotBridgeUrl: '',  // set by RobotConnection while a real Pepper is connected
 
   // Position
   x: 0.5, y: 0.5, theta: 0,
@@ -125,7 +128,23 @@ export const usePepperStore = create((set) => ({
   setDisconnected: () => set({ connected: false }),
 
   setMode: (mode) => set({ mode }),
+  setRobotBridgeUrl: (robotBridgeUrl) => set({ robotBridgeUrl }),
 }));
+
+
+/**
+ * Maps the bridge-target dial (mode + robotBridgeUrl) to the actual bridge URL
+ * the control helpers hit. 'sim' (or 'real' with no robot) → app origin; 'real'
+ * with a connected robot → that robot's bridge. One place owns this side effect.
+ */
+export function useBridgeTarget() {
+  const mode = usePepperStore((s) => s.mode);
+  const robotBridgeUrl = usePepperStore((s) => s.robotBridgeUrl);
+
+  useEffect(() => {
+    setBridgeUrl(mode === 'real' && robotBridgeUrl ? robotBridgeUrl : '');
+  }, [mode, robotBridgeUrl]);
+}
 
 
 /**
