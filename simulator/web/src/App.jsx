@@ -10,6 +10,7 @@ import ControlPanel from './components/ControlPanel';
 import TopBar from './components/TopBar';
 import CommandPalette from './components/CommandPalette';
 import Onboarding from './components/Onboarding';
+import SettingsDrawer from './components/SettingsDrawer';
 import { usePepperWebSocket, usePepperStore, useBrowserTTS, useBridgeTarget } from './hooks/usePepperState';
 
 function SpeechOverlay() {
@@ -73,6 +74,7 @@ export default function App() {
       <RealModeBanner />
       <CommandPalette />
       <Onboarding />
+      <SettingsDrawer />
 
       <div className="flex flex-1 min-h-0">
         <ControlPanel />

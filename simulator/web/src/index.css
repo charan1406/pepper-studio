@@ -1,22 +1,31 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #0a0a0f;
-  --color-surface-1: #14141b;
-  --color-surface-2: #1c1c25;
-  --color-overlay: #20202a;
+  /* Surfaces — cool, deep console charcoal (not pure black) */
+  --color-bg: #0b0d12;
+  --color-surface-1: #12151c;
+  --color-surface-2: #1a1e27;
+  --color-overlay: #1f2430;
   --color-border: rgba(255, 255, 255, 0.07);
-  --color-border-strong: rgba(255, 255, 255, 0.12);
-  --color-accent: #7c7cf0;
-  --color-accent-hover: #8f8ff5;
-  --color-accent-active: #6b6be0;
-  --color-accent-soft: rgba(124, 124, 240, 0.14);
-  --color-text: #e6e6ee;
-  --color-muted: #9a9aa8;
-  --color-dim: #5a5a66;
+  --color-border-strong: rgba(255, 255, 255, 0.13);
+
+  /* Accent = Pepper's LED eye-glow (cyan-teal). Buttons use dark text on it. */
+  --color-accent: #34d8c8;
+  --color-accent-hover: #56e4d6;
+  --color-accent-active: #20c2b3;
+  --color-accent-soft: rgba(52, 216, 200, 0.14);
+  --color-on-accent: #06131a;
+
+  --color-text: #e8ecf0;
+  --color-muted: #98a0ad;
+  --color-dim: #5a626f;
   --color-ok: #4ade80;
   --color-warn: #fbbf24;
   --color-danger: #f87171;
+
+  --font-sans: 'Space Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
+
   --radius-md: 10px;
   --radius-lg: 14px;
 }
@@ -26,6 +35,15 @@ body {
   margin: 0;
   background: var(--color-bg);
   color: var(--color-text);
-  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
+
+/* Console-style scrollbars so dense panels don't read as a default webpage */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-surface-2) transparent;
+}
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-thumb { background: var(--color-surface-2); border-radius: 6px; }
+*::-webkit-scrollbar-thumb:hover { background: var(--color-border-strong); }

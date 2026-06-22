@@ -174,7 +174,7 @@ function ChatPopup() {
         <button
           onClick={sendMessage}
           disabled={chatLoading || !input.trim()}
-          className="px-3.5 py-2 rounded-md bg-accent text-white text-[13px] font-semibold
+          className="px-3.5 py-2 rounded-md bg-accent text-on-accent text-[13px] font-semibold
                      hover:bg-accent-hover disabled:bg-surface-2 disabled:text-dim disabled:cursor-default"
         >
           Send

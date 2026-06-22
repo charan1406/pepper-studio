@@ -52,7 +52,6 @@ export default function VoicePanel() {
           </div>
         ))}
       </div>
-      <div className="text-[10px] text-dim mt-1.5">Records from the connected bridge, transcribes, and Pepper replies aloud.</div>
     </div>
   );
 }

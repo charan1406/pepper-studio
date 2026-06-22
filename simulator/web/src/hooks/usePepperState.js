@@ -22,6 +22,9 @@ export const usePepperStore = create((set) => ({
   // global hotkey share one source of truth).
   paletteOpen: false,
 
+  // Setup drawer (AI / bridge / robot / services). Config lives here, off the
+  // control rail, so the rail stays pure operation.
+  settingsOpen: false,
   // AI settings panel open state + an optional source to preselect, so the
   // first-run onboarding can deep-link the user straight into AI setup.
   aiPanelOpen: false,
@@ -140,9 +143,11 @@ export const usePepperStore = create((set) => ({
   setRobotBridgeUrl: (robotBridgeUrl) => set({ robotBridgeUrl }),
   setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
   togglePalette: () => set((s) => ({ paletteOpen: !s.paletteOpen })),
+  setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
+  toggleSettings: () => set((s) => ({ settingsOpen: !s.settingsOpen })),
   setAiPanelOpen: (aiPanelOpen) => set({ aiPanelOpen }),
-  // Open AI setup, optionally jumping to a specific source tab.
-  openAiPanel: (source = null) => set({ aiPanelOpen: true, aiInitialSource: source }),
+  // Open the setup drawer focused on AI, optionally jumping to a source tab.
+  openAiPanel: (source = null) => set({ settingsOpen: true, aiPanelOpen: true, aiInitialSource: source }),
   clearAiInitialSource: () => set({ aiInitialSource: null }),
 }));
 

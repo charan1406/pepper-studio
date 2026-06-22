@@ -14,7 +14,7 @@ export function SegmentedToggle({ value, onValueChange, options, ariaLabel }) {
         <ToggleGroup.Item
           key={o.value} value={o.value}
           className="px-4 py-1.5 text-sm rounded-md text-muted data-[state=on]:bg-accent
-                     data-[state=on]:text-white data-[state=on]:shadow-[0_1px_6px_rgba(124,124,240,0.35)]
+                     data-[state=on]:text-on-accent data-[state=on]:font-medium data-[state=on]:shadow-[0_0_10px_rgba(52,216,200,0.28)]
                      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
         >
           {o.label}

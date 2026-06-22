@@ -2,30 +2,44 @@ import React, { useState, useEffect } from 'react';
 import {
   moveVelocity, stopMove, setPosture, speak, stopSpeak,
   setEyeColor, listAnimations, runAnimation, setHead,
-  getBridgeUrl, setBridgeUrl, POSTURES, HEAD_LIMITS,
+  POSTURES, HEAD_LIMITS,
 } from '../lib/bridge';
+import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, RotateCcw, RotateCw, Square, Settings } from 'lucide-react';
 import { Button, Input } from '../design';
-import AISettings from './AISettings';
-import RobotConnection from './RobotConnection';
+import { usePepperStore } from '../hooks/usePepperState';
 import VoicePanel from './VoicePanel';
-import ServicesPanel from './ServicesPanel';
 
-function Section({ title, children }) {
+function Section({ title, aside, children }) {
   return (
-    <section className="px-4 py-3 border-b border-border">
-      <h3 className="text-[10px] font-semibold text-dim uppercase tracking-[1.5px] mb-2.5">{title}</h3>
+    <section className="px-4 py-4 border-b border-border">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-[10px] font-semibold text-dim uppercase tracking-[2px]">{title}</h3>
+        {aside}
+      </div>
       {children}
     </section>
   );
 }
 
-function MoveButton({ label, vx, vy, vtheta }) {
-  const down = () => moveVelocity(vx, vy, vtheta);
-  const up = () => stopMove();
+// A directional pad cell. Press-and-hold drives; release stops. The center
+// cell is a hard stop. aria-labels keep the controls findable + accessible.
+function PadButton({ label, icon: Icon, vx, vy, vtheta, stop }) {
+  const base = 'h-12 flex items-center justify-center rounded-md select-none transition-colors '
+    + 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50';
+  if (stop) {
+    return (
+      <button aria-label="Stop" onClick={() => stopMove()}
+        className={base + ' bg-danger/10 border border-danger/30 text-danger hover:bg-danger/20'}>
+        <Icon size={17} fill="currentColor" />
+      </button>
+    );
+  }
   return (
-    <Button variant="secondary" onMouseDown={down} onMouseUp={up} onMouseLeave={up} aria-label={label}>
-      {label}
-    </Button>
+    <button aria-label={label}
+      onMouseDown={() => moveVelocity(vx, vy, vtheta)} onMouseUp={() => stopMove()} onMouseLeave={() => stopMove()}
+      className={base + ' bg-surface-2 border border-border text-muted hover:text-text hover:border-accent/60 active:bg-accent/15 active:border-accent active:text-accent'}>
+      <Icon size={19} />
+    </button>
   );
 }
 
@@ -36,8 +50,7 @@ export default function ControlPanel() {
   const [selectedAnim, setSelectedAnim] = useState('');
   const [yaw, setYaw] = useState(0);
   const [pitch, setPitch] = useState(0);
-  const [showSettings, setShowSettings] = useState(false);
-  const [urlDraft, setUrlDraft] = useState(getBridgeUrl());
+  const toggleSettings = usePepperStore((s) => s.toggleSettings);
 
   useEffect(() => {
     listAnimations()
@@ -66,50 +79,52 @@ export default function ControlPanel() {
     + 'focus:outline-none focus:border-accent/60 focus:ring-[3px] focus:ring-accent-soft';
 
   return (
-    <div className="w-[300px] h-full bg-surface-1 border-r border-border flex flex-col overflow-y-auto">
-      <div className="px-4 py-3 border-b border-border">
-        <div className="flex items-center justify-between">
-          <div className="text-sm font-semibold text-text">Manual Control</div>
-          <Button variant="ghost" className="px-2 py-1 text-[11px]"
-            onClick={() => { setUrlDraft(getBridgeUrl()); setShowSettings((s) => !s); }}>Bridge URL</Button>
-        </div>
-        {showSettings && (
-          <div className="mt-2.5">
-            <Input className="w-full" value={urlDraft} placeholder="http://localhost:5001"
-              onChange={(e) => setUrlDraft(e.target.value)} />
-            <div className="grid grid-cols-2 gap-1.5 mt-1.5">
-              <Button onClick={() => { setBridgeUrl(urlDraft); setShowSettings(false); }}>Save</Button>
-              <Button variant="secondary" onClick={() => { setBridgeUrl(''); setUrlDraft(getBridgeUrl()); }}>Reset</Button>
-            </div>
-            <p className="text-[10px] text-dim mt-1.5">Or connect a real Pepper below — it sets this URL automatically.</p>
-            <h3 className="text-[10px] font-semibold text-dim uppercase tracking-[1.5px] mt-3">Robot Connection</h3>
-            <RobotConnection />
-          </div>
-        )}
-        <AISettings />
-      </div>
+    <div className="w-[320px] h-full bg-surface-1 border-r border-border flex flex-col overflow-y-auto">
+      <header className="flex items-center justify-between px-4 h-12 border-b border-border shrink-0">
+        <span className="text-sm font-semibold text-text">Manual Control</span>
+        <button onClick={toggleSettings} aria-label="Open setup"
+          className="w-7 h-7 flex items-center justify-center rounded-md text-muted hover:text-text hover:bg-surface-2">
+          <Settings size={15} />
+        </button>
+      </header>
 
-      <Section title="Voice"><VoicePanel /></Section>
-      <Section title="Services"><ServicesPanel /></Section>
-
-      <Section title="Movement">
-        <div className="grid grid-cols-3 gap-1.5 mb-1.5">
-          <MoveButton label="Rotate L" vx={0} vy={0} vtheta={1} />
-          <MoveButton label="Forward" vx={1} vy={0} vtheta={0} />
-          <MoveButton label="Rotate R" vx={0} vy={0} vtheta={-1} />
-          <MoveButton label="Left" vx={0} vy={1} vtheta={0} />
-          <MoveButton label="Back" vx={-1} vy={0} vtheta={0} />
-          <MoveButton label="Right" vx={0} vy={-1} vtheta={0} />
+      <Section title="Move" aside={<span className="text-[10px] text-dim">hold to drive</span>}>
+        <div className="grid grid-cols-3 gap-2">
+          <PadButton label="Rotate left" icon={RotateCcw} vx={0} vy={0} vtheta={1} />
+          <PadButton label="Forward" icon={ArrowUp} vx={1} vy={0} vtheta={0} />
+          <PadButton label="Rotate right" icon={RotateCw} vx={0} vy={0} vtheta={-1} />
+          <PadButton label="Left" icon={ArrowLeft} vx={0} vy={1} vtheta={0} />
+          <PadButton stop icon={Square} />
+          <PadButton label="Right" icon={ArrowRight} vx={0} vy={-1} vtheta={0} />
+          <span />
+          <PadButton label="Back" icon={ArrowDown} vx={-1} vy={0} vtheta={0} />
+          <span />
         </div>
-        <Button variant="secondary" className="w-full" onClick={() => stopMove()}>&#9632; Stop</Button>
       </Section>
 
       <Section title="Posture">
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-2 gap-1.5">
           {POSTURES.map((p) => (
             <Button key={p} variant="secondary" onClick={() => setPosture(p, 0.5)}>{p}</Button>
           ))}
         </div>
+      </Section>
+
+      <Section title="Head">
+        <div className="flex flex-col gap-1 mb-2 text-sm text-muted">
+          <div className="flex justify-between"><span>Yaw</span><span className="font-mono text-text">{yaw.toFixed(2)}</span></div>
+          <input type="range" className="accent-[var(--color-accent)]"
+            min={HEAD_LIMITS.yaw[0]} max={HEAD_LIMITS.yaw[1]} step={0.01} value={yaw}
+            onChange={(e) => { const v = parseFloat(e.target.value); setYaw(v); setHead(v, pitch); }} />
+        </div>
+        <div className="flex flex-col gap-1 mb-2.5 text-sm text-muted">
+          <div className="flex justify-between"><span>Pitch</span><span className="font-mono text-text">{pitch.toFixed(2)}</span></div>
+          <input type="range" className="accent-[var(--color-accent)]"
+            min={HEAD_LIMITS.pitch[0]} max={HEAD_LIMITS.pitch[1]} step={0.01} value={pitch}
+            onChange={(e) => { const v = parseFloat(e.target.value); setPitch(v); setHead(yaw, v); }} />
+        </div>
+        <Button variant="secondary" className="w-full"
+          onClick={() => { setYaw(0); setPitch(0); setHead(0, 0); }}>Center</Button>
       </Section>
 
       <Section title="Speak">
@@ -122,11 +137,13 @@ export default function ControlPanel() {
         </div>
       </Section>
 
-      <Section title="Eye Color">
+      <Section title="Voice"><VoicePanel /></Section>
+
+      <Section title="Eyes">
         <div className="flex items-center gap-2">
           <input type="color" value={eye} onChange={(e) => onEyeChange(e.target.value)}
             className="w-10 h-8 bg-transparent border border-border rounded-md cursor-pointer" />
-          <span className="text-dim text-sm">{eye}</span>
+          <span className="text-dim text-sm font-mono">{eye}</span>
         </div>
       </Section>
 
@@ -139,23 +156,6 @@ export default function ControlPanel() {
         </select>
         <Button className="w-full" disabled={!selectedAnim}
           onClick={() => selectedAnim && runAnimation(selectedAnim)}>Run</Button>
-      </Section>
-
-      <Section title="Head">
-        <div className="flex flex-col gap-1 mb-2 text-sm text-muted">
-          <span>Yaw: {yaw.toFixed(2)}</span>
-          <input type="range" className="accent-[var(--color-accent)]"
-            min={HEAD_LIMITS.yaw[0]} max={HEAD_LIMITS.yaw[1]} step={0.01} value={yaw}
-            onChange={(e) => { const v = parseFloat(e.target.value); setYaw(v); setHead(v, pitch); }} />
-        </div>
-        <div className="flex flex-col gap-1 mb-2 text-sm text-muted">
-          <span>Pitch: {pitch.toFixed(2)}</span>
-          <input type="range" className="accent-[var(--color-accent)]"
-            min={HEAD_LIMITS.pitch[0]} max={HEAD_LIMITS.pitch[1]} step={0.01} value={pitch}
-            onChange={(e) => { const v = parseFloat(e.target.value); setPitch(v); setHead(yaw, v); }} />
-        </div>
-        <Button variant="secondary" className="w-full"
-          onClick={() => { setYaw(0); setPitch(0); setHead(0, 0); }}>Center</Button>
       </Section>
     </div>
   );

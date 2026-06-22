@@ -1,7 +1,7 @@
 import React from 'react';
 
 const VARIANTS = {
-  primary: 'bg-accent text-white hover:bg-accent-hover active:bg-accent-active shadow-[0_1px_8px_rgba(124,124,240,0.35)]',
+  primary: 'bg-accent text-on-accent font-semibold hover:bg-accent-hover active:bg-accent-active shadow-[0_0_12px_rgba(52,216,200,0.28)]',
   secondary: 'bg-surface-2 text-text border border-border hover:border-border-strong',
   ghost: 'text-muted hover:text-text hover:bg-surface-2',
   danger: 'bg-danger/15 text-danger border border-danger/30 hover:bg-danger/25',
