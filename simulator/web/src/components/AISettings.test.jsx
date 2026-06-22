@@ -23,7 +23,6 @@ beforeEach(() => {
 describe('AISettings', () => {
   it('loads config on mount and never shows the key', async () => {
     render(<AISettings />);
-    fireEvent.click(screen.getByRole('button', { name: /^ai$/i }));
     await waitFor(() => expect(bridge.getAiConfig).toHaveBeenCalled());
     const keyField = screen.getByPlaceholderText(/key stored|api key/i);
     expect(keyField.value).toBe('');
@@ -31,7 +30,6 @@ describe('AISettings', () => {
 
   it('Save omits api_key when untouched, includes it when typed', async () => {
     render(<AISettings />);
-    fireEvent.click(screen.getByRole('button', { name: /^ai$/i }));
     await waitFor(() => expect(bridge.getAiConfig).toHaveBeenCalled());
 
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
@@ -44,7 +42,6 @@ describe('AISettings', () => {
 
   it('Test button calls testAiConfig', async () => {
     render(<AISettings />);
-    fireEvent.click(screen.getByRole('button', { name: /^ai$/i }));
     await waitFor(() => expect(bridge.getAiConfig).toHaveBeenCalled());
     fireEvent.click(screen.getByRole('button', { name: /^test$/i }));
     expect(bridge.testAiConfig).toHaveBeenCalled();

@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getRobotStatus, connectRobot, disconnectRobot } from '../lib/bridge';
 import { usePepperStore } from '../hooks/usePepperState';
-import { Button } from '../design';
 
-const FIELD = 'w-full rounded-md bg-surface-1 border border-border px-2.5 py-2 text-xs text-text '
-  + 'placeholder:text-dim focus:outline-none focus:border-accent/60 focus:ring-[3px] focus:ring-accent-soft';
+const FIELD = 'hmi-field w-full px-2.5 py-2 text-xs';
 
-const STATE_TONE = { connected: 'text-ok', error: 'text-danger', connecting: 'text-warn', disconnected: 'text-muted' };
+const LAMP = { connected: 'hmi-lamp-on', error: 'hmi-lamp-red', connecting: 'hmi-lamp-on', disconnected: 'hmi-lamp-off' };
 
 export default function RobotConnection() {
   const [host, setHost] = useState('');
@@ -61,17 +59,19 @@ export default function RobotConnection() {
             onChange={(e) => setPassword(e.target.value)} />
         )}
       </div>
-      <div className="grid grid-cols-2 gap-1.5">
-        <Button onClick={onConnect} disabled={!host || status.state === 'connecting'}>Connect</Button>
-        <Button variant="secondary" onClick={onDisconnect}>Disconnect</Button>
+      <div className="grid grid-cols-2 gap-2">
+        <button className="hmi-key hmi-key-go px-3 py-2.5 text-[13px] font-semibold rounded-md disabled:opacity-45"
+          onClick={onConnect} disabled={!host || status.state === 'connecting'}>Connect</button>
+        <button className="hmi-key px-3 py-2.5 text-[13px] font-semibold rounded-md" onClick={onDisconnect}>Disconnect</button>
       </div>
       <div className="flex items-center gap-1.5">
-        <span className={'text-[10px] font-semibold ' + (STATE_TONE[status.state] || 'text-muted')}>● {status.state}</span>
-        {status.battery != null && <span className="text-[10px] text-dim">battery {status.battery}%</span>}
-        {status.error && <span className="text-[10px] text-dim">{status.error}</span>}
+        <span className={'hmi-lamp ' + (LAMP[status.state] || 'hmi-lamp-off')} />
+        <span className="hmi-engrave text-[11px] font-semibold">{status.state}</span>
+        {status.battery != null && <span className="hmi-engrave text-[10px] opacity-60">· {status.battery}%</span>}
+        {status.error && <span className="hmi-engrave text-[10px] opacity-60">· {status.error}</span>}
       </div>
-      <div className="text-[10px] text-dim">Installs an SSH key on first connect — no password after that. Closing the app stops the robot bridge.</div>
-      <div ref={logRef} className="h-[110px] overflow-y-auto bg-bg border border-border rounded-md p-1.5 text-[10px] font-mono text-muted whitespace-pre-wrap">
+      <div className="hmi-engrave text-[10px] opacity-55">Installs an SSH key on first connect — no password after that. Closing the app stops the robot bridge.</div>
+      <div ref={logRef} className="hmi-lcd h-[100px] overflow-y-auto rounded p-2 text-[10px] whitespace-pre-wrap">
         {status.log || ''}
       </div>
     </div>

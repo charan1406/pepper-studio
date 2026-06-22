@@ -28,7 +28,7 @@ describe('SettingsDrawer', () => {
     const field = screen.getByPlaceholderText(/localhost:5001/i);
     await userEvent.clear(field);
     await userEvent.type(field, 'http://robot.local:5001');
-    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+    fireEvent.click(screen.getByRole('button', { name: /save bridge url/i }));
     expect(bridge.setBridgeUrl).toHaveBeenCalledWith('http://robot.local:5001');
   });
 

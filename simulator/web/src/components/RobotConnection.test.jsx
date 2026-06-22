@@ -45,7 +45,7 @@ describe('RobotConnection', () => {
     render(<RobotConnection />);
     await waitFor(() => expect(usePepperStore.getState().robotBridgeUrl).toBe('http://192.168.1.17:5001'));
     expect(usePepperStore.getState().mode).toBe('real');
-    expect(screen.getByText(/battery 91%/i)).toBeInTheDocument();
+    expect(screen.getByText(/91%/)).toBeInTheDocument();
   });
 
   it('Disconnect calls disconnectRobot', async () => {

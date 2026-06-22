@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { getBridgeUrl, setBridgeUrl } from '../lib/bridge';
 import { usePepperStore } from '../hooks/usePepperState';
-import { Button, Input } from '../design';
 import AISettings from './AISettings';
 import RobotConnection from './RobotConnection';
 import ServicesPanel from './ServicesPanel';
 
 function Group({ title, hint, children }) {
   return (
-    <section className="px-6 py-5 border-b border-border">
-      <h3 className="text-[13px] font-semibold text-text tracking-wide">{title}</h3>
-      {hint && <p className="text-[11px] text-dim mt-1 mb-3.5 leading-relaxed">{hint}</p>}
+    <section className="px-6 py-5 border-b border-white/10">
+      <h3 className="hmi-engrave text-[12px] font-bold uppercase tracking-[2px]">{title}</h3>
+      {hint && <p className="hmi-engrave text-[11px] opacity-60 mt-1 mb-3.5 leading-relaxed">{hint}</p>}
       <div className={hint ? '' : 'mt-3.5'}>{children}</div>
     </section>
   );
@@ -38,13 +37,13 @@ export default function SettingsDrawer() {
       />
       <aside
         aria-label="Setup"
-        className={'fixed top-0 right-0 h-full w-[392px] max-w-full bg-surface-1 border-l border-border-strong z-[211] '
+        className={'hmi-panel fixed top-0 right-0 h-full w-[392px] max-w-full border-l border-white/12 z-[211] '
           + 'flex flex-col transition-transform duration-200 ' + (open ? 'translate-x-0' : 'translate-x-full')}
       >
-        <header className="flex items-center justify-between px-6 h-14 border-b border-border shrink-0">
-          <span className="text-sm font-semibold text-text">Setup</span>
+        <header className="hmi-plate flex items-center justify-between px-6 h-14 border-b border-white/10 shrink-0">
+          <span className="hmi-engrave text-[13px] font-bold uppercase tracking-[2px]">Setup</span>
           <button onClick={() => setOpen(false)} aria-label="Close setup"
-            className="text-muted hover:text-text text-base">✕</button>
+            className="hmi-key w-8 h-8 flex items-center justify-center rounded-md">✕</button>
         </header>
 
         <div className="flex-1 overflow-y-auto">
@@ -53,11 +52,11 @@ export default function SettingsDrawer() {
           </Group>
 
           <Group title="Bridge & robot" hint="Where control commands go. Connect a real Pepper to point them at the robot.">
-            <Input className="w-full" value={urlDraft} placeholder="http://localhost:5001"
+            <input className="hmi-field w-full px-3 py-2.5 text-sm" value={urlDraft} placeholder="http://localhost:5001"
               onChange={(e) => setUrlDraft(e.target.value)} />
-            <div className="grid grid-cols-2 gap-1.5 mt-1.5">
-              <Button onClick={() => setBridgeUrl(urlDraft)}>Save</Button>
-              <Button variant="secondary" onClick={() => { setBridgeUrl(''); setUrlDraft(getBridgeUrl()); }}>Reset</Button>
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              <button aria-label="Save bridge URL" className="hmi-key hmi-key-go px-3 py-2.5 text-[13px] font-semibold rounded-md" onClick={() => setBridgeUrl(urlDraft)}>Save</button>
+              <button aria-label="Reset bridge URL" className="hmi-key px-3 py-2.5 text-[13px] font-semibold rounded-md" onClick={() => { setBridgeUrl(''); setUrlDraft(getBridgeUrl()); }}>Reset</button>
             </div>
             <RobotConnection />
           </Group>
