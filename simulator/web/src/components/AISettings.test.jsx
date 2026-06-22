@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AISettings from './AISettings';
 import * as bridge from '../lib/bridge';
+import { usePepperStore } from '../hooks/usePepperState';
 
 vi.mock('../lib/bridge', async (importOriginal) => {
   const actual = await importOriginal();
@@ -14,7 +15,10 @@ vi.mock('../lib/bridge', async (importOriginal) => {
   };
 });
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  usePepperStore.setState({ aiPanelOpen: false, aiInitialSource: null });
+});
 
 describe('AISettings', () => {
   it('loads config on mount and never shows the key', async () => {

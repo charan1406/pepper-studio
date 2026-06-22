@@ -22,6 +22,11 @@ export const usePepperStore = create((set) => ({
   // global hotkey share one source of truth).
   paletteOpen: false,
 
+  // AI settings panel open state + an optional source to preselect, so the
+  // first-run onboarding can deep-link the user straight into AI setup.
+  aiPanelOpen: false,
+  aiInitialSource: null,
+
   // Position
   x: 0.5, y: 0.5, theta: 0,
   isMoving: false,
@@ -135,6 +140,10 @@ export const usePepperStore = create((set) => ({
   setRobotBridgeUrl: (robotBridgeUrl) => set({ robotBridgeUrl }),
   setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
   togglePalette: () => set((s) => ({ paletteOpen: !s.paletteOpen })),
+  setAiPanelOpen: (aiPanelOpen) => set({ aiPanelOpen }),
+  // Open AI setup, optionally jumping to a specific source tab.
+  openAiPanel: (source = null) => set({ aiPanelOpen: true, aiInitialSource: source }),
+  clearAiInitialSource: () => set({ aiInitialSource: null }),
 }));
 
 

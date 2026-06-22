@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getAiConfig, setAiConfig, testAiConfig, getProvisionStatus } from '../lib/bridge';
 import { Button, Input } from '../design';
+import { usePepperStore } from '../hooks/usePepperState';
 import LocalRunnerPanel from './LocalRunnerPanel';
 import ProvisionPanel from './ProvisionPanel';
 
@@ -15,7 +16,10 @@ function SourceTab({ on, children, ...props }) {
 }
 
 export default function AISettings() {
-  const [open, setOpen] = useState(false);
+  const open = usePepperStore((s) => s.aiPanelOpen);
+  const setOpen = usePepperStore((s) => s.setAiPanelOpen);
+  const aiInitialSource = usePepperStore((s) => s.aiInitialSource);
+  const clearAiInitialSource = usePepperStore((s) => s.clearAiInitialSource);
   const [cfg, setCfg] = useState({ base_url: '', model: 'local', timeout: 60, enabled: false, key_set: false });
   const [source, setSource] = useState('cloud');
   const [keyDraft, setKeyDraft] = useState('');
@@ -32,7 +36,15 @@ export default function AISettings() {
     }).catch(() => {});
   };
 
-  const onToggle = () => { const next = !open; setOpen(next); if (next) refresh(); };
+  // Refresh whenever the panel opens (via the AI button or an onboarding
+  // deep-link); apply a preselected source from onboarding, then clear it.
+  useEffect(() => {
+    if (!open) return;
+    refresh();
+    if (aiInitialSource) { setSource(aiInitialSource); clearAiInitialSource(); }
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const onToggle = () => setOpen(!open);
 
   const buildBody = () => {
     const body = { base_url: cfg.base_url, model: cfg.model, timeout: cfg.timeout };
