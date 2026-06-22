@@ -1,17 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getVoiceStatus, voiceTalk, voiceClear, getBridgeUrl, getSearxngUrl } from '../lib/bridge';
-
-const S = {
-  input: { width: '100%', padding: '8px 10px', background: '#1c1c1e', border: '1px solid #3a3a3c', borderRadius: '6px', color: '#e5e5e5', fontSize: '12px', outline: 'none', fontFamily: 'inherit', marginBottom: '6px', boxSizing: 'border-box' },
-  btn: { padding: '8px 10px', background: '#3a3a3c', border: '1px solid #4a4a4c', borderRadius: '6px', color: '#e5e5e5', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit' },
-  talk: (busy) => ({ flex: 1, padding: '10px 12px', background: busy ? '#4a4a4c' : '#8aba8a', border: 'none', borderRadius: '6px', color: busy ? '#aaa' : '#1c1c1e', fontSize: '13px', fontWeight: 700, cursor: busy ? 'default' : 'pointer' }),
-  row: { display: 'flex', gap: '6px' },
-  badge: (s) => ({ fontSize: '10px', fontWeight: 600, color: s === 'busy' ? '#d4a847' : '#8aba8a' }),
-  note: { fontSize: '10px', color: '#666', marginTop: '6px' },
-  log: { marginTop: '8px', maxHeight: '160px', overflowY: 'auto', background: '#0e0e10', border: '1px solid #3a3a3c', borderRadius: '6px', padding: '6px', fontSize: '11px', fontFamily: 'inherit' },
-  you: { color: '#9ab', margin: '2px 0' },
-  pepper: { color: '#bda', margin: '2px 0' },
-};
+import { Button } from '../design';
 
 export default function VoicePanel() {
   const [secs, setSecs] = useState('5');
@@ -36,30 +25,34 @@ export default function VoicePanel() {
   const onClear = async () => { const r = await voiceClear(); if (r?.data) setStatus(r.data); };
 
   const busy = status.state === 'busy';
+  const stateTone = busy ? 'text-warn' : 'text-ok';
 
   return (
-    <div style={{ marginTop: '10px' }}>
-      <div style={S.row}>
-        <button style={S.talk(busy)} onClick={onTalk} disabled={busy}>
+    <div className="mt-2.5">
+      <div className="flex gap-1.5">
+        <Button variant="primary" className="flex-1" onClick={onTalk} disabled={busy}>
           {busy ? '● listening…' : '🎤 Talk to Pepper'}
-        </button>
-        <input style={{ ...S.input, width: '54px', marginBottom: 0, textAlign: 'center' }}
-          value={secs} title="record seconds" onChange={(e) => setSecs(e.target.value)} />
+        </Button>
+        <input value={secs} title="record seconds" onChange={(e) => setSecs(e.target.value)}
+          className="w-[54px] text-center rounded-md bg-surface-1 border border-border text-sm text-text
+                     focus:outline-none focus:border-accent/60 focus:ring-[3px] focus:ring-accent-soft" />
       </div>
-      <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-        <span style={S.badge(status.state)}>● {status.state}</span>
-        {status.error && <span style={S.note}>{status.error}</span>}
-        <button style={{ ...S.btn, marginLeft: 'auto', padding: '4px 8px' }} onClick={onClear}>Clear</button>
+      <div className="mt-1.5 flex items-center gap-1.5">
+        <span className={'text-[10px] font-semibold ' + stateTone}>● {status.state}</span>
+        {status.error && <span className="text-[10px] text-dim">{status.error}</span>}
+        <Button variant="ghost" className="ml-auto px-2 py-1 text-[11px]" onClick={onClear}>Clear</Button>
       </div>
-      <div ref={logRef} style={S.log}>
-        {(status.transcript || []).length === 0 && <div style={S.note}>Press Talk and speak. Replies appear here.</div>}
+      <div ref={logRef} className="mt-2 max-h-[160px] overflow-y-auto bg-bg border border-border rounded-md p-1.5 text-[11px]">
+        {(status.transcript || []).length === 0 && (
+          <div className="text-[10px] text-dim">Press Talk and speak. Replies appear here.</div>
+        )}
         {(status.transcript || []).map((m, i) => (
-          <div key={i} style={m.role === 'pepper' ? S.pepper : S.you}>
+          <div key={i} className={'my-0.5 ' + (m.role === 'pepper' ? 'text-ok' : 'text-accent')}>
             <strong>{m.role === 'pepper' ? 'Pepper' : 'You'}:</strong> {m.text}
           </div>
         ))}
       </div>
-      <div style={S.note}>Records from the connected bridge, transcribes, and Pepper replies aloud.</div>
+      <div className="text-[10px] text-dim mt-1.5">Records from the connected bridge, transcribes, and Pepper replies aloud.</div>
     </div>
   );
 }

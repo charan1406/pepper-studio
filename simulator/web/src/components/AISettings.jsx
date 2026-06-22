@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import { getAiConfig, setAiConfig, testAiConfig, getProvisionStatus } from '../lib/bridge';
+import { Button, Input } from '../design';
 import LocalRunnerPanel from './LocalRunnerPanel';
 import ProvisionPanel from './ProvisionPanel';
 
-const S = {
-  btn: { padding: '4px 8px', background: '#3a3a3c', border: '1px solid #4a4a4c', borderRadius: '6px', color: '#e5e5e5', fontSize: '11px', cursor: 'pointer', fontFamily: 'inherit' },
-  primary: { padding: '8px 12px', background: '#8aba8a', border: 'none', borderRadius: '6px', color: '#1c1c1e', fontSize: '12px', fontWeight: 600, cursor: 'pointer' },
-  input: { width: '100%', padding: '8px 10px', background: '#1c1c1e', border: '1px solid #3a3a3c', borderRadius: '6px', color: '#e5e5e5', fontSize: '12px', outline: 'none', fontFamily: 'inherit', marginBottom: '6px' },
-  tab: (on) => ({ flex: 1, padding: '6px', background: on ? '#3a3a3c' : 'transparent', border: '1px solid #3a3a3c', borderRadius: '6px', color: on ? '#e5e5e5' : '#999', fontSize: '11px', cursor: 'pointer' }),
-  grid2: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' },
-  note: { fontSize: '10px', color: '#666', marginTop: '6px' },
-};
+function SourceTab({ on, children, ...props }) {
+  return (
+    <button
+      className={'flex-1 px-2 py-1.5 rounded-md text-[11px] border transition-colors '
+        + (on ? 'bg-surface-2 border-border-strong text-text' : 'bg-transparent border-border text-muted hover:text-text')}
+      {...props}
+    >{children}</button>
+  );
+}
 
 export default function AISettings() {
   const [open, setOpen] = useState(false);
@@ -62,42 +64,40 @@ export default function AISettings() {
   const onReset = () => { setCfg({ base_url: '', model: 'local', timeout: 60, enabled: false, key_set: false }); setKeyDraft(''); };
 
   return (
-    <div style={{ marginTop: '8px' }}>
-      <button style={S.btn} onClick={onToggle}>AI</button>
+    <div className="mt-2">
+      <Button variant="secondary" className="px-2 py-1 text-[11px]" onClick={onToggle}>AI</Button>
       {open && (
-        <div style={{ marginTop: '10px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${bundle === 'full' ? 4 : 3}, 1fr)`, gap: '6px', marginBottom: '8px' }}>
-            {bundle === 'full' && (
-              <button style={S.tab(source === 'auto')} onClick={() => setSource('auto')}>Auto</button>
-            )}
-            <button style={S.tab(source === 'cloud')} onClick={() => setSource('cloud')}>Cloud</button>
-            <button style={S.tab(source === 'local')} onClick={() => setSource('local')}>Local server</button>
-            <button style={S.tab(source === 'gguf')} onClick={() => setSource('gguf')}>Local GGUF</button>
+        <div className="mt-2.5">
+          <div className="flex gap-1.5 mb-2">
+            {bundle === 'full' && <SourceTab on={source === 'auto'} onClick={() => setSource('auto')}>Auto</SourceTab>}
+            <SourceTab on={source === 'cloud'} onClick={() => setSource('cloud')}>Cloud</SourceTab>
+            <SourceTab on={source === 'local'} onClick={() => setSource('local')}>Local server</SourceTab>
+            <SourceTab on={source === 'gguf'} onClick={() => setSource('gguf')}>Local GGUF</SourceTab>
           </div>
           {source === 'auto' && <ProvisionPanel />}
           {source === 'gguf' && <LocalRunnerPanel />}
           {source !== 'gguf' && source !== 'auto' && (
             <>
-              <input style={S.input} value={cfg.base_url ?? ''} placeholder="base_url (e.g. http://localhost:8090/v1)"
+              <Input className="w-full mb-1.5" value={cfg.base_url ?? ''} placeholder="base_url (e.g. http://localhost:8090/v1)"
                 onChange={(e) => setCfg({ ...cfg, base_url: e.target.value })} />
-              <input style={S.input} value={cfg.model ?? ''} placeholder="model"
+              <Input className="w-full mb-1.5" value={cfg.model ?? ''} placeholder="model"
                 onChange={(e) => setCfg({ ...cfg, model: e.target.value })} />
               {source === 'cloud' && (
-                <input style={S.input} type="password" value={keyDraft}
+                <Input className="w-full mb-1.5" type="password" value={keyDraft}
                   placeholder={cfg.key_set ? 'key stored •••• (type to replace)' : 'api key'}
                   onChange={(e) => setKeyDraft(e.target.value)} />
               )}
-              <div style={S.grid2}>
-                <button style={S.primary} onClick={onSave}>Save</button>
-                <button style={S.btn} onClick={onTest}>Test</button>
+              <div className="grid grid-cols-2 gap-1.5">
+                <Button onClick={onSave}>Save</Button>
+                <Button variant="secondary" onClick={onTest}>Test</Button>
               </div>
-              <div style={{ ...S.grid2, marginTop: '6px' }}>
-                <button style={S.btn} onClick={onReset}>Reset</button>
-                <div style={{ fontSize: '10px', color: cfg.enabled ? '#8aba8a' : '#666', alignSelf: 'center' }}>
+              <div className="grid grid-cols-2 gap-1.5 mt-1.5 items-center">
+                <Button variant="ghost" onClick={onReset}>Reset</Button>
+                <div className={'text-[10px] self-center ' + (cfg.enabled ? 'text-ok' : 'text-dim')}>
                   {cfg.enabled ? '● enabled' : '○ disabled'}
                 </div>
               </div>
-              {status && <div style={S.note}>{status}</div>}
+              {status && <div className="text-[10px] text-dim mt-1.5">{status}</div>}
             </>
           )}
         </div>
