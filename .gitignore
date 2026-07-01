@@ -21,6 +21,9 @@ pepper_probe_report.txt
 # Local working docs (specs/plans live here, kept out of git)
 docs/
 
+# Report/thesis (kept local, not published)
+report/
+
 # OS
 .DS_Store
 Thumbs.db
