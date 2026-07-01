@@ -8,6 +8,8 @@ it pick, and dispatches:
 
 Returns (spoken_text, kind) where kind is "action:<name>", "search", or "chat".
 """
+import datetime
+
 import actions
 import games
 import music
@@ -34,6 +36,13 @@ def _synthesize_search(brain, system, question, history, searxng_url, query):
 
 def respond(brain, client, system, question, history, searxng_url=""):
     """Run one brain turn with tools. Returns (spoken_text, kind)."""
+    # The model's weights have a fixed knowledge cutoff, so it guesses the date
+    # (typically its training date). Inject the real clock at call time — fresh
+    # every turn — so date/day/time questions are answered from fact, not memory.
+    system += ("\n\nFACT: the current date and time is %s. If the user asks for the "
+               "date, the day of the week, or the time, answer with exactly this. Never "
+               "use a date, day, or year from your training memory."
+               % datetime.datetime.now().strftime("%A, %d %B %Y, %H:%M"))
     tools = list(actions.ACTION_TOOLS)
     tools.append(games.RPS_TOOL)
     if music.HAS_YTDLP:
