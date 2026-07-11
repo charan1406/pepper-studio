@@ -689,9 +689,56 @@ class BridgeHandler(BaseHTTPRequestHandler):
 
     # ─── POST routes ─────────────────────────────────────────────
 
+    # Robot-contract routes reject unknown body keys with a 400 instead of
+    # silently no-op'ing ({"vx": 1} on /move/velocity used to return success
+    # while doing nothing). Keys are the UNION of what this sim and the real
+    # pepper/bridge.py read — keep in lockstep when either changes. Studio-side
+    # routes (/ai/*, /robot/*, /voice/*, /services/*) validate in their handlers.
+    ROBOT_PARAMS = {
+        "/speak":             {"text", "language", "speed", "pitch"},
+        "/speak/stop":        set(),
+        "/audio/record":      {"seconds"},
+        "/audio/play":        {"raw"},
+        "/audio/stop":        set(),
+        "/move/velocity":     {"x", "y", "theta"},
+        "/move/to":           {"x", "y", "theta"},
+        "/move/stop":         set(),
+        "/posture/set":       {"posture", "speed"},
+        "/head/set":          {"yaw", "pitch", "speed"},
+        "/joints/set":        {"names", "angles", "speed"},
+        "/joints/stiffness":  {"names", "values"},
+        "/leds/eyes":         {"r", "g", "b"},
+        "/leds/ears":         {"intensity"},
+        "/animation/run":     {"name"},
+        "/tablet/show/url":   {"url"},
+        "/tablet/show/image": {"url"},
+        "/tablet/hide":       set(),
+        "/face/track/start":  set(),
+        "/face/track/stop":   set(),
+        "/autonomous/set":    {"enabled"},
+        "/awareness/set":     {"enabled"},
+        "/navigate/explore":  {"radius"},
+        "/navigate/goto":     {"x", "y", "theta"},
+        "/navigate/save":     set(),
+        "/navigate/load":     {"path"},
+        "/chat":              {"text"},
+    }
+
     def do_POST(self):
         path = urlparse(self.path).path
         body = self._read_body()
+
+        allowed = self.ROBOT_PARAMS.get(path)
+        if allowed is not None and isinstance(body, dict):
+            unknown = set(body) - allowed
+            if unknown:
+                expected = ", ".join(sorted(allowed)) if allowed else "no parameters"
+                response = {"success": False,
+                            "error": f"unknown parameter(s) {', '.join(sorted(unknown))} "
+                                     f"for {path} — expected: {expected}"}
+                pepper.log_api_call(path, "POST", body=body, response=response)
+                self._send_json(response, 400)
+                return
 
         routes = {
             "/speak":              self._post_speak,

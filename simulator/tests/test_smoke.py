@@ -40,6 +40,20 @@ def _post(base, path, payload):
         return json.loads(r.read())
 
 
+def _post_status(base, path, payload):
+    """Like _post but returns (http_status, body) without raising on 4xx."""
+    req = urllib.request.Request(
+        base + path, method="POST",
+        data=json.dumps(payload).encode(),
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as r:
+            return r.status, json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        return e.code, json.loads(e.read())
+
+
 def test_single_process_end_to_end(tmp_path):
     port, ws_port = _free_port(), _free_port()
     # Hermetic HOME so a persisted ~/.pepper-studio/ai.json on the dev box can't
@@ -73,6 +87,20 @@ def test_single_process_end_to_end(tmp_path):
 
         speak = _post(base, "/speak", {"text": "hi"})
         assert speak["success"] is True
+
+        # Robot-contract routes must 400 on unknown params, not silently no-op.
+        code, resp = _post_status(base, "/move/velocity", {"vx": 1.0})
+        assert code == 400 and resp["success"] is False
+        assert "vx" in resp["error"] and "theta" in resp["error"]
+
+        code, resp = _post_status(base, "/move/velocity", {"x": 0.0, "theta": 0})
+        assert code == 200 and resp["success"] is True
+
+        code, resp = _post_status(base, "/animation/run", {"animation": "x"})
+        assert code == 400 and "name" in resp["error"]
+
+        code, resp = _post_status(base, "/move/stop", {"anything": 1})
+        assert code == 400 and "no parameters" in resp["error"]
     finally:
         proc.terminate()
         try:
