@@ -54,7 +54,7 @@ body {
     repeating-linear-gradient(90deg, rgba(255,255,255,.022) 0 1px, rgba(0,0,0,.12) 1px 3px),
     linear-gradient(157deg, #2c2f34 0%, #212428 52%, #15171a 100%);
 }
-.hmi-engrave { color: #c4c8cd; text-shadow: 0 1px 1px rgba(0,0,0,.7); }
+.hmi-engrave { color: #d0d5db; text-shadow: 0 1px 1px rgba(0,0,0,.7); }
 .hmi-plate {
   background: linear-gradient(180deg, #2b2e33, #1d1f23);
   box-shadow: inset 0 1px 0 rgba(255,255,255,.06), inset 0 -1px 0 rgba(0,0,0,.55);
@@ -71,8 +71,8 @@ body {
 .hmi-key:hover { background: linear-gradient(180deg, #474c53, #2f3338); }
 .hmi-key:active { transform: translateY(1px); box-shadow: inset 0 2px 5px rgba(0,0,0,.55), 0 1px 1px rgba(0,0,0,.3); }
 .hmi-key:disabled { opacity: .45; }
-.hmi-key-go { background: linear-gradient(180deg, #207050, #154e38); border-color: #0a3525; color: #b8f4d4; text-shadow: 0 -1px 0 rgba(0,0,0,.4); }
-.hmi-key-go:hover { background: linear-gradient(180deg, #268359, #1a5c42); }
+.hmi-key-go { background: linear-gradient(180deg, #1b6e63, #124a43); border-color: #0a332e; color: #aef0e6; text-shadow: 0 -1px 0 rgba(0,0,0,.4); }
+.hmi-key-go:hover { background: linear-gradient(180deg, #218276, #17564e); }
 
 /* Dark keycap (D-pad) */
 .hmi-key-dark {

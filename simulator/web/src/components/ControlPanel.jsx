@@ -11,8 +11,8 @@ import EyeColorControl from './EyeColorControl';
 
 function Section({ title, aside, children }) {
   return (
-    <section className="px-5 py-4 border-b border-white/10">
-      <div className="flex items-center justify-between mb-3.5">
+    <section className="px-6 py-5 border-b border-white/10">
+      <div className="flex items-center justify-between mb-4">
         <h3 className="hmi-engrave text-[11px] font-bold uppercase tracking-[2px]">{title}</h3>
         {aside}
       </div>
@@ -90,8 +90,8 @@ export default function ControlPanel() {
   };
 
   return (
-    <div className="hmi-panel w-[348px] h-full border-r border-white/10 flex flex-col">
-      <header className="hmi-plate flex items-center justify-between px-5 h-14 border-b border-white/10 shrink-0">
+    <div className="hmi-panel w-[372px] h-full border-r border-white/10 flex flex-col">
+      <header className="hmi-plate flex items-center justify-between px-6 h-14 border-b border-white/10 shrink-0">
         <span className="hmi-engrave text-[13px] font-bold uppercase tracking-[2px]">Manual Control</span>
         <button onClick={toggleSettings} aria-label="Open setup"
           className="hmi-key w-8 h-8 flex items-center justify-center rounded-md">
@@ -120,7 +120,7 @@ export default function ControlPanel() {
       </Section>
 
       <Section title="Posture">
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-2 gap-3">
           {POSTURES.map((p) => (
             <MetalBtn key={p} onClick={() => setPosture(p, 0.5)}>{p}</MetalBtn>
           ))}
@@ -128,7 +128,7 @@ export default function ControlPanel() {
       </Section>
 
       <Section title="Head">
-        <div className="grid grid-cols-2 gap-2.5 mb-3">
+        <div className="grid grid-cols-2 gap-3 mb-3">
           <div className="hmi-lcd px-3 py-2 flex items-baseline justify-between">
             <span className="text-[9px] opacity-70 tracking-widest">YAW</span>
             <span className="text-[15px]">{yaw.toFixed(2)}</span>
@@ -138,10 +138,10 @@ export default function ControlPanel() {
             <span className="text-[15px]">{pitch.toFixed(2)}</span>
           </div>
         </div>
-        <input type="range" className="w-full accent-[#2c9c84] mb-3"
+        <input type="range" className="w-full accent-[#34d8c8] mb-3"
           min={HEAD_LIMITS.yaw[0]} max={HEAD_LIMITS.yaw[1]} step={0.01} value={yaw}
           onChange={(e) => { const v = parseFloat(e.target.value); setYaw(v); setHead(v, pitch); }} />
-        <input type="range" className="w-full accent-[#2c9c84] mb-4"
+        <input type="range" className="w-full accent-[#34d8c8] mb-4"
           min={HEAD_LIMITS.pitch[0]} max={HEAD_LIMITS.pitch[1]} step={0.01} value={pitch}
           onChange={(e) => { const v = parseFloat(e.target.value); setPitch(v); setHead(yaw, v); }} />
         <MetalBtn className="w-full" onClick={() => { setYaw(0); setPitch(0); setHead(0, 0); }}>Center</MetalBtn>
@@ -151,7 +151,7 @@ export default function ControlPanel() {
         <input className="hmi-field w-full px-3 py-2.5 text-sm mb-2.5" value={text} placeholder="Say something..."
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') onSpeak(); }} />
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-2 gap-3">
           <MetalBtn go onClick={onSpeak}>Speak</MetalBtn>
           <MetalBtn onClick={() => stopSpeak()}>Stop</MetalBtn>
         </div>

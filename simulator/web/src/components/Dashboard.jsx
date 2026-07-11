@@ -14,7 +14,7 @@ function Label({ children, extra }) {
 function Lcd({ label, value, unit, big }) {
   return (
     <div className="hmi-lcd rounded px-3 py-2">
-      <div className="text-[8px] tracking-[2px] opacity-55 mb-1">{label}</div>
+      <div className="text-[9px] tracking-[2px] opacity-75 mb-1">{label}</div>
       <div className="flex items-baseline gap-1">
         <span className={'lcd-7seg ' + (big ? 'text-[22px]' : 'text-[15px]')}>{value}</span>
         {unit && <span className="text-[10px] opacity-70">{unit}</span>}

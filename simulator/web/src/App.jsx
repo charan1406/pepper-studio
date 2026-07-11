@@ -79,11 +79,11 @@ export default function App() {
       <div className="flex flex-1 min-h-0">
         <ControlPanel />
         {/* 3D Viewport — recessed in a metal bezel, like a panel screen */}
-        <div className="flex-1 min-w-0 p-3">
-          <div className="hmi-bezel h-full w-full rounded-xl p-1.5">
+        <div className="flex-1 min-w-0 p-3 flex flex-col gap-3">
+          <div className="hmi-bezel flex-1 min-h-0 w-full rounded-xl p-1.5">
             <div className="relative h-full w-full rounded-lg overflow-hidden hmi-glass">
               <Canvas
-                camera={{ position: [3, 4, 6], fov: 50, near: 0.1, far: 100 }}
+                camera={{ position: [-1.3, 1.8, 0.1], fov: 50, near: 0.1, far: 100 }}
                 shadows
                 gl={{ antialias: true }}
                 style={{ background: '#1a1611' }}
@@ -93,13 +93,15 @@ export default function App() {
                   <PepperModel />
                 </Suspense>
 
+                {/* Default framing: Pepper spawns at sim (0.5, 0.5) → scene (-3.5, -2.5).
+                    Camera sits ~3m out at head height, aimed at the robot's chest. */}
                 <OrbitControls
                   enableDamping
                   dampingFactor={0.05}
                   maxPolarAngle={Math.PI / 2.1}
-                  minDistance={2}
+                  minDistance={1.2}
                   maxDistance={15}
-                  target={[0, 0.5, 0]}
+                  target={[-3.2, 0.7, -2.2]}
                 />
 
                 {/* Warm atmospheric fade beyond the room */}
