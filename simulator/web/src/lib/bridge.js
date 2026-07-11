@@ -43,20 +43,48 @@ export function setSearxngUrl(url) {
   }
 }
 
-async function post(path, body = {}) {
-  const res = await fetch(`${getBridgeUrl()}${path}`, {
+// Failed bridge calls dispatch 'bridge-fault' so the UI can surface them
+// (FaultToast). The error still throws — callers with their own inline
+// handling (chat, voice) keep working; fire-and-forget callers (the manual
+// controls) get visible feedback instead of a silent dead click.
+export function reportFault(message) {
+  try {
+    window.dispatchEvent(new CustomEvent('bridge-fault', { detail: { message, ts: Date.now() } }));
+  } catch {
+    // non-browser context (tests without jsdom) — nothing to show
+  }
+}
+
+async function faultingFetch(url, path, init) {
+  let res;
+  try {
+    res = await fetch(url, init);
+  } catch {
+    reportFault(`${path} — bridge unreachable at ${new URL(url).origin}`);
+    throw new Error(`${path} → bridge unreachable`);
+  }
+  if (!res.ok) {
+    let detail = `HTTP ${res.status}`;
+    try {
+      const data = await res.clone().json();
+      if (data?.error) detail = data.error;
+    } catch { /* body wasn't JSON — keep the status text */ }
+    reportFault(`${path} — ${detail}`);
+    throw new Error(`${path} → ${detail}`);
+  }
+  return res.json();
+}
+
+function post(path, body = {}) {
+  return faultingFetch(`${getBridgeUrl()}${path}`, path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`POST ${path} → HTTP ${res.status}`);
-  return res.json();
 }
 
-async function get(path) {
-  const res = await fetch(`${getBridgeUrl()}${path}`);
-  if (!res.ok) throw new Error(`GET ${path} → HTTP ${res.status}`);
-  return res.json();
+function get(path) {
+  return faultingFetch(`${getBridgeUrl()}${path}`, path);
 }
 
 // Studio-side endpoints (AI config, llama runner, robot connection) live on the

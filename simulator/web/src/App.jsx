@@ -5,6 +5,7 @@ import PepperModel from './components/PepperModel';
 import Room from './components/Room';
 import Dashboard from './components/Dashboard';
 import ChatPopup from './components/ChatPopup';
+import FaultToast from './components/FaultToast';
 import SearchResultPopup from './components/SearchResultPopup';
 import ControlPanel from './components/ControlPanel';
 import TopBar from './components/TopBar';
@@ -110,6 +111,7 @@ export default function App() {
 
               <SpeechOverlay />
               <SearchResultPopup />
+              <FaultToast />
             </div>
           </div>
           <ChatPopup />
