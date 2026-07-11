@@ -149,17 +149,21 @@ def _provision_handoff():
     _runner_cfg["binary"] = st["binary"]
     _runner_cfg["models_dir"] = provision.MODELS_DIR
     _runner_cfg["gguf"] = st["gguf"]
+    flags = dict(_runner_cfg.get("flags") or {})
+    if st.get("mmproj"):
+        flags["mmproj"] = st["mmproj"]   # VL vision tower -> llama-server --mmproj
+    _runner_cfg["flags"] = flags
     runner.save(_runner_cfg)
-    runner.start(st["gguf"], _runner_cfg.get("flags", {}), binary=st["binary"])
+    runner.start(st["gguf"], flags, binary=st["binary"])
 
 
-def _start_provision(backend=None):
+def _start_provision(backend=None, model=None):
     global _provision_thread
     if _provision_thread and _provision_thread.is_alive():
         return provision.status()
 
     def _run():
-        provision.provision(backend=backend)
+        provision.provision(backend=backend, model=model)
         _provision_handoff()
 
     _provision_thread = threading.Thread(target=_run, daemon=True)
@@ -1026,13 +1030,20 @@ class BridgeHandler(BaseHTTPRequestHandler):
         data = dict(provision.status())
         data["bundle"] = BUNDLE
         data["provisioned"] = provision.is_provisioned()
+        data["models"] = [{"id": k, "label": v["label"],
+                           "default": k == provision.DEFAULT_CHOICE}
+                          for k, v in provision.MODEL_CHOICES.items()]
         return {"success": True, "data": data}
 
     def _post_provision_start(self, body):
         if BUNDLE != "full":
             return {"success": False, "error": "auto-provisioning is only available in the 'full' build"}
         backend = (body.get("backend") or "").strip().lower() or None
-        return {"success": True, "data": _start_provision(backend=backend)}
+        model = (body.get("model") or "").strip().lower() or None
+        if model and model not in provision.MODEL_CHOICES:
+            return {"success": False,
+                    "error": f"unknown model '{model}' — options: {', '.join(provision.MODEL_CHOICES)}"}
+        return {"success": True, "data": _start_provision(backend=backend, model=model)}
 
     # ── Robot connection (studio-side; deploys + runs bridge.py on a real Pepper) ──
 

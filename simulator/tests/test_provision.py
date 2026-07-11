@@ -182,6 +182,41 @@ def test_provision_end_to_end_linux_vulkan(tmp_path, monkeypatch):
     assert os.path.isfile(res["binary"])
     assert res["gguf"].endswith(".gguf")
     assert os.path.isfile(res["gguf"])
+    # Default choice is a VL model -> the vision tower must come along.
+    assert res["mmproj"].startswith(str(tmp_path / "models"))
+    assert "mmproj" in os.path.basename(res["mmproj"])
+    assert os.path.isfile(res["mmproj"])
+
+
+def test_provision_accepts_model_choice_key(tmp_path, monkeypatch):
+    monkeypatch.setattr(provision, "LLAMA_DIR", str(tmp_path / "llama"))
+    monkeypatch.setattr(provision, "MODELS_DIR", str(tmp_path / "models"))
+    monkeypatch.setattr(provision.platform, "system", lambda: "Linux")
+    monkeypatch.setattr(provision.platform, "machine", lambda: "x86_64")
+
+    tar_bytes = _make_linux_vulkan_tar()
+
+    def fake_opener(req, *a, **k):
+        url = req.full_url if hasattr(req, "full_url") else req
+        if ".gguf" in url:
+            return _FakeResp(b"GGUF\x00fake", {"Content-Length": "9"})
+        return _FakeResp(tar_bytes, {"Content-Length": str(len(tar_bytes))})
+
+    res = provision.provision(backend="vulkan", model="8b",
+                              list_assets=lambda opener: ASSETS, opener=fake_opener)
+    assert res["state"] == "done", res
+    assert "8B" in os.path.basename(res["gguf"])
+    assert "8B" in os.path.basename(res["mmproj"])
+
+
+def test_provision_rejects_unknown_model_choice(monkeypatch):
+    monkeypatch.setattr(provision.platform, "system", lambda: "Linux")
+    monkeypatch.setattr(provision.platform, "machine", lambda: "x86_64")
+    res = provision.provision(backend="vulkan", model="70b",
+                              list_assets=lambda opener: ASSETS,
+                              opener=lambda *a, **k: None)
+    assert res["state"] == "error"
+    assert "options" in res["error"]
 
 
 def test_provision_linux_cuda_fails_clearly(monkeypatch):
@@ -205,6 +240,7 @@ def test_provision_is_idempotent_skips_existing(tmp_path, monkeypatch):
     (bdir / "llama-server").write_text("#!/bin/sh\n")
     (tmp_path / "models").mkdir()
     (tmp_path / "models" / provision.DEFAULT_MODEL["name"]).write_text("x")
+    (tmp_path / "models" / provision.DEFAULT_MODEL["mmproj_name"]).write_text("x")
 
     def boom(*a, **k):
         raise AssertionError("should not download when already provisioned")

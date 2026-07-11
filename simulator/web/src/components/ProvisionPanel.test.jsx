@@ -3,37 +3,50 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import ProvisionPanel from './ProvisionPanel';
 import * as bridge from '../lib/bridge';
 
+const MODELS = [
+  { id: '2b', label: 'Qwen3-VL 2B', default: false },
+  { id: '4b', label: 'Qwen3-VL 4B', default: true },
+  { id: '8b', label: 'Qwen3-VL 8B', default: false },
+];
+
 vi.mock('../lib/bridge', async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
-    getProvisionStatus: vi.fn().mockResolvedValue({
-      success: true, data: { state: 'idle', step: '', progress: 0, log: [], provisioned: false, bundle: 'full' },
-    }),
+    getProvisionStatus: vi.fn(),
     startProvision: vi.fn().mockResolvedValue({ success: true, data: { state: 'running', step: 'resolve', log: [] } }),
   };
 });
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  bridge.getProvisionStatus.mockResolvedValue({
+    success: true,
+    data: { state: 'idle', step: '', progress: 0, log: [], provisioned: false, bundle: 'full', models: MODELS },
+  });
+});
 
 describe('ProvisionPanel', () => {
-  it('Download & start triggers provisioning with auto-detect by default', async () => {
+  it('defaults to auto-detect backend + the server-recommended model size', async () => {
     render(<ProvisionPanel />);
+    await screen.findByRole('option', { name: /4B/ });
     fireEvent.click(screen.getByRole('button', { name: /download & start/i }));
-    await waitFor(() => expect(bridge.startProvision).toHaveBeenCalled());
-    expect(bridge.startProvision.mock.calls[0][0]).toBe(''); // '' => auto-detect
+    await waitFor(() => expect(bridge.startProvision).toHaveBeenCalledWith('', '4b'));
   });
 
-  it('passes the chosen backend override', async () => {
+  it('passes the chosen backend and model size', async () => {
     render(<ProvisionPanel />);
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'vulkan' } });
+    await screen.findByRole('option', { name: /8B/ });
+    fireEvent.change(screen.getByRole('combobox', { name: /model size/i }), { target: { value: '8b' } });
+    fireEvent.change(screen.getByRole('combobox', { name: /compute backend/i }), { target: { value: 'vulkan' } });
     fireEvent.click(screen.getByRole('button', { name: /download & start/i }));
-    await waitFor(() => expect(bridge.startProvision).toHaveBeenCalledWith('vulkan'));
+    await waitFor(() => expect(bridge.startProvision).toHaveBeenCalledWith('vulkan', '8b'));
   });
 
   it('shows ready state when already provisioned', async () => {
-    bridge.getProvisionStatus.mockResolvedValueOnce({
-      success: true, data: { state: 'done', step: 'done', progress: 1, log: [], provisioned: true, bundle: 'full' },
+    bridge.getProvisionStatus.mockResolvedValue({
+      success: true,
+      data: { state: 'done', step: 'done', progress: 1, log: [], provisioned: true, bundle: 'full', models: MODELS },
     });
     render(<ProvisionPanel />);
     await screen.findByText(/brain ready/i);

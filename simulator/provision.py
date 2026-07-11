@@ -34,12 +34,30 @@ LLAMA_REPO = "ggml-org/llama.cpp"
 LLAMA_BUILD = "b9673"
 RELEASE_BASE = f"https://github.com/{LLAMA_REPO}/releases/download/{LLAMA_BUILD}"
 
-# Recommended default brain: small, fast, solid tool-calling, runs on CPU.
-DEFAULT_MODEL = {
-    "name": "qwen2.5-3b-instruct-q4_k_m.gguf",
-    "url": "https://huggingface.co/Qwen/Qwen2.5-3B-Instruct-GGUF/resolve/main/"
-           "qwen2.5-3b-instruct-q4_k_m.gguf?download=true",
+# Curated first-run brains: Qwen3-VL Instruct (vision-language — same Qwen
+# family as the original tested text default, but Pepper has cameras, so the
+# brain should be able to see). The user picks the size in the UI; 4B is the
+# default. Q4_K_M weights + Q8_0 mmproj (vision tower). Official Qwen GGUF
+# repos + exact filenames verified live 2026-07-11. Sizes above 8B stay
+# bring-your-own via the lean path — a 20 GB first-run download is a trap.
+def _qwen3vl(size):
+    base = (f"https://huggingface.co/Qwen/Qwen3-VL-{size}-Instruct-GGUF"
+            "/resolve/main/")
+    name = f"Qwen3VL-{size}-Instruct-Q4_K_M.gguf"
+    mmproj = f"mmproj-Qwen3VL-{size}-Instruct-Q8_0.gguf"
+    return {"name": name, "url": base + name + "?download=true",
+            "mmproj_name": mmproj, "mmproj_url": base + mmproj + "?download=true"}
+
+MODEL_CHOICES = {
+    "2b": {"label": "Qwen3-VL 2B — light · 1.6 GB · runs on CPU or any GPU",
+           **_qwen3vl("2B")},
+    "4b": {"label": "Qwen3-VL 4B — recommended · 3 GB · ~4 GB VRAM or fast CPU",
+           **_qwen3vl("4B")},
+    "8b": {"label": "Qwen3-VL 8B — best quality · 5.8 GB · ~8 GB VRAM",
+           **_qwen3vl("8B")},
 }
+DEFAULT_CHOICE = "4b"
+DEFAULT_MODEL = MODEL_CHOICES[DEFAULT_CHOICE]
 
 # Tokens that mark a NON-cpu / non-target asset. Used to pick the plain CPU build.
 _GPU_TOKENS = ("vulkan", "cuda", "rocm", "hip", "sycl", "openvino", "opencl",
@@ -239,6 +257,7 @@ _state = {
     "backend": "",
     "binary": "",
     "gguf": "",
+    "mmproj": "",
     "error": None,
     "log": deque(maxlen=200),
 }
@@ -280,6 +299,11 @@ def provision(backend=None, model=None, build=None, list_assets=None,
     global RELEASE_BASE
     if build:
         RELEASE_BASE = f"https://github.com/{LLAMA_REPO}/releases/download/{build}"
+    if isinstance(model, str):
+        key = model.strip().lower()
+        if key not in MODEL_CHOICES:
+            return _fail(f"unknown model '{model}' — options: {', '.join(MODEL_CHOICES)}")
+        model = MODEL_CHOICES[key]
     model = model or DEFAULT_MODEL
     bk = detect_backend(override=backend)
     _set(state="running", step="resolve", backend=bk, error=None, progress=0.0)
@@ -335,7 +359,21 @@ def provision(backend=None, model=None, build=None, list_assets=None,
                  on_progress=lambda d, t: _set(progress=(d / t) if t else 0.0))
     _log(f"model: {gguf}")
 
-    _set(state="done", step="done", progress=1.0, binary=server, gguf=gguf)
+    # 3) vision tower (mmproj) — VL models need it for camera/image input;
+    # the runner passes it to llama-server as --mmproj.
+    mmproj = ""
+    if model.get("mmproj_name"):
+        mmproj = os.path.join(MODELS_DIR, model["mmproj_name"])
+        if not os.path.isfile(mmproj):
+            _set(step="download-mmproj", progress=0.0)
+            if on_step:
+                on_step("download-mmproj")
+            download(model["mmproj_url"], mmproj, opener=opener,
+                     on_progress=lambda d, t: _set(progress=(d / t) if t else 0.0))
+        _log(f"mmproj: {mmproj}")
+
+    _set(state="done", step="done", progress=1.0, binary=server, gguf=gguf,
+         mmproj=mmproj)
     return status()
 
 
@@ -357,5 +395,5 @@ def _fail(msg):
 def _reset_for_test():
     with _lock:
         _state.update(state="idle", step="", progress=0.0, backend="",
-                      binary="", gguf="", error=None)
+                      binary="", gguf="", mmproj="", error=None)
         _state["log"].clear()

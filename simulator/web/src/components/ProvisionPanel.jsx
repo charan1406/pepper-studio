@@ -14,13 +14,15 @@ const STEP_LABEL = {
   resolve: 'Resolving release…',
   'download-binary': 'Downloading llama.cpp…',
   'extract-binary': 'Extracting…',
-  'download-model': 'Downloading model (~2 GB, first run only)…',
+  'download-model': 'Downloading model (first run only)…',
+  'download-mmproj': 'Downloading vision adapter…',
   done: 'Ready',
 };
 
 export default function ProvisionPanel() {
   const [backend, setBackend] = useState('');
-  const [status, setStatus] = useState({ state: 'idle', step: '', progress: 0, log: [], provisioned: false });
+  const [model, setModel] = useState('');
+  const [status, setStatus] = useState({ state: 'idle', step: '', progress: 0, log: [], provisioned: false, models: [] });
   const logRef = useRef(null);
 
   const refresh = () => getProvisionStatus().then((r) => { if (r?.data) setStatus(r.data); }).catch(() => {});
@@ -31,11 +33,18 @@ export default function ProvisionPanel() {
     return () => clearInterval(id);
   }, []);
 
+  // Default the picker to the server-recommended size once the list arrives.
+  useEffect(() => {
+    if (!model && status.models?.length) {
+      setModel(status.models.find((m) => m.default)?.id || status.models[0].id);
+    }
+  }, [status.models, model]);
+
   useEffect(() => { if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight; }, [status.log]);
 
   const onStart = async () => {
-    const r = await startProvision(backend);
-    if (r?.data) setStatus(r.data);
+    const r = await startProvision(backend, model);
+    if (r?.data) setStatus((s) => ({ ...s, ...r.data }));
   };
 
   const busy = status.state === 'running';
@@ -46,11 +55,16 @@ export default function ProvisionPanel() {
     <div className="mt-1">
       <div className="hmi-engrave text-sm font-bold mb-1">Set up the AI brain</div>
       <div className="hmi-engrave text-[10px] opacity-60 leading-relaxed">
-        Downloads a llama.cpp engine + a recommended model (Qwen2.5 3B) and starts it for you.
-        No accounts, no setup. One-time ~2 GB download.
+        Downloads a llama.cpp engine + a vision-capable Qwen3-VL model and starts
+        it for you. No accounts, no setup. Pick the size that fits your hardware —
+        bigger answers better, smaller runs everywhere.
       </div>
       <div className="mt-2.5 space-y-2.5">
-        <select value={backend} disabled={busy} onChange={(e) => setBackend(e.target.value)}
+        <select aria-label="Model size" value={model} disabled={busy} onChange={(e) => setModel(e.target.value)}
+          className="hmi-field w-full px-2.5 py-2.5 text-sm disabled:opacity-50">
+          {(status.models || []).map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+        </select>
+        <select aria-label="Compute backend" value={backend} disabled={busy} onChange={(e) => setBackend(e.target.value)}
           className="hmi-field w-full px-2.5 py-2.5 text-sm disabled:opacity-50">
           {BACKENDS.map(([v, label]) => <option key={v} value={v}>{label}</option>)}
         </select>
@@ -70,8 +84,8 @@ export default function ProvisionPanel() {
       </div>
       {(busy || done) && (
         <div className="h-2 bg-black/40 rounded-full overflow-hidden mt-2 border border-white/5">
-          <div className="h-full bg-[#34d860] transition-[width] duration-300"
-            style={{ width: `${Math.round((done ? 1 : (status.progress || 0)) * 100)}%`, boxShadow: '0 0 8px rgba(52,216,96,.6)' }} />
+          <div className="h-full bg-accent transition-[width] duration-300"
+            style={{ width: `${Math.round((done ? 1 : (status.progress || 0)) * 100)}%`, boxShadow: '0 0 8px rgba(52,216,200,.6)' }} />
         </div>
       )}
       {status.error && <div className="hmi-engrave text-[10px] mt-1.5" style={{ color: '#f87171' }}>{status.error}</div>}
